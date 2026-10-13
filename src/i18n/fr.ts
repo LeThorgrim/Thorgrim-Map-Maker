@@ -1,0 +1,78 @@
+import type { Messages } from './en';
+
+export const fr: Messages = {
+  appName: 'Map maker',
+  languageName: 'Français',
+
+  home: {
+    tagline: 'Choisissez une carte, créez vos pays et peignez leurs frontières, location par location.',
+    available: 'Cartes disponibles',
+    loading: 'Chargement des cartes…',
+    loadError: (reason) => `La liste des cartes n'a pas pu être chargée (${reason}).`,
+    generateHint: 'Lancez npm run generate pour créer une carte, puis rechargez la page.',
+    locations: 'Locations',
+    provinces: 'Provinces',
+    areas: 'Areas',
+    regions: 'Régions',
+    open: 'Ouvrir la carte',
+    resume: 'Reprendre ma carte',
+    progress: (painted, countries) => `${painted} locations peintes, ${countries} pays`,
+    scenarios: 'Ou partir de',
+  },
+
+  editor: {
+    loading: 'Chargement de la carte…',
+    loadError: (reason) => `Cette carte n'a pas pu être chargée : ${reason}.`,
+    backToList: 'Toutes les cartes',
+    zoomIn: 'Zoomer',
+    zoomOut: 'Dézoomer',
+    fit: 'Recentrer (0)',
+  },
+
+  panel: {
+    intro: 'Choisissez un pays, puis peignez ses terres sur la carte.',
+    startFrom: 'Partir de',
+    blank: 'Vierge',
+    loadingScenario: 'Chargement…',
+    confirmReplace: (name) => `Remplacer la carte actuelle par « ${name} » ? Ctrl+Z permet d'annuler.`,
+    tool: 'Outil',
+    tools: { paint: 'Peindre', erase: 'Gommer', pick: 'Pipette' },
+    scope: 'Un clic colorie…',
+    levels: { location: 'Location', province: 'Province', area: 'Area', region: 'Région' },
+    scopeHintStart: 'À la volée :',
+    keys: { shift: 'Maj', ctrl: 'Ctrl', alt: 'Alt' },
+    countries: 'Pays',
+    noCountries: 'Aucun pays pour l’instant. Créez-en un, ou partez d’un scénario ci-dessus.',
+    newCountry: 'Nouveau pays',
+    newCountryName: (n) => `Nouveau pays ${n}`,
+    changeColor: 'Changer la couleur',
+    countryName: 'Nom du pays',
+    owned: 'Locations possédées',
+    remove: (name) => `Supprimer ${name}`,
+    undo: 'Annuler (Ctrl+Z)',
+    redo: 'Rétablir (Ctrl+Y)',
+    exportPng: 'Exporter en PNG',
+    exporting: 'Export en cours…',
+    save: 'Enregistrer',
+    open: 'Ouvrir',
+    clear: 'Tout effacer',
+    confirmClear: 'Retirer tous les pays de la carte ? Ctrl+Z permet d’annuler.',
+    close: 'Fermer',
+    language: 'Langue',
+  },
+
+  errors: {
+    otherMap: 'Ce fichier a été créé pour une autre carte (nombre de locations différent).',
+    invalidFile: "Ce fichier n'est pas une sauvegarde de carte valide.",
+    exportFailed: "L'export a échoué.",
+    scenarioFailed: (reason) => `Le scénario n'a pas pu être chargé (${reason}).`,
+  },
+
+  hover: {
+    province: 'Province',
+    area: 'Area',
+    region: 'Région',
+    today: "Aujourd'hui",
+    unclaimed: 'Terre non revendiquée',
+  },
+};

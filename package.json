@@ -1,0 +1,33 @@
+{
+  "name": "mapmaker",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "generate": "node --max-old-space-size=6000 generator/generate.mjs",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "loadouts": "node --max-old-space-size=4000 generator/loadouts.mjs"
+  },
+  "dependencies": {
+    "fast-png": "^8.0.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@geo-maps/earth-lands-10m": "^0.6.0",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "all-the-cities": "^3.1.0",
+    "d3-geo": "^3.1.1",
+    "oxlint": "^1.81.0",
+    "simplex-noise": "^4.0.3",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  }
+}
