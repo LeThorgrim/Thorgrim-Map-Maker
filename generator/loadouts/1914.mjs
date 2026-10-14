@@ -1,7 +1,7 @@
 // Europe in July 1914, on the eve of the First World War. Colonies and protectorates are shown
 // with their metropole when they were annexed (Algeria, Libya), and on their own otherwise.
 
-import { adm, and, iso, near, north, reg, south, west } from './dsl.mjs';
+import { adm, and, east, iso, near, north, reg, south, west } from './dsl.mjs';
 
 export default {
   id: '1914',
@@ -69,7 +69,18 @@ export default {
     ['MON', iso('MC')],
     ['SMR', iso('SM')],
     ['LIE', iso('LI')],
-    [null, iso('KW'), and(iso('DZ', 'LY'), south(29)), iso('EH', 'MR')],
+    // Sahara: French Algerian territories, Spanish Río de Oro, Italian claim over the Fezzan
+    ['FRA', iso('DZ', 'MR')],
+    ['SPA', iso('EH')],
+    ['ITA', iso('LY')],
+    [null, iso('KW')],
+    ['GBR', adm('GB', 'Shetland Islands', 'Orkney')],
+    // Austrian Tyrol (South Tyrol, Trentino, Ampezzo), Tarvis, Gorizia and Trieste
+    ['AUH', adm('IT', 'Bozen', 'Trento'), near(12.05, 46.44, 8), near(13.36, 46.46, 8), and(iso('IT'), east(13.4), south(46.3), north(45.5))],
+    // Balkans after the Treaty of Constantinople (Sept. 1913): Eastern Thrace and Adrianople are
+    // Ottoman again; Bulgaria keeps Western Thrace down to the Aegean; Samothrace is Greek.
+    ['TUR', iso('TR'), and(adm('GR', 'Anatoliki Makedonia kai Thraki'), east(26.1), north(41.3))],
+    ['GRE', near(25.58, 40.46, 15)],
   ],
   // locations without base coverage take the country of most of their neighbours
   fillGaps: true,
