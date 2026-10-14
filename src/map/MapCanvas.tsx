@@ -74,6 +74,8 @@ export function MapCanvas({ map }: { map: MapData }) {
     const st = useStore.getState();
     r.setPalette(st.countries);
     r.setOwners(st.owner);
+    r.setOverlays(st.overlays);
+    r.setMarks(st.outline, st.hatch);
     let mods: Mods = { shiftKey: false, ctrlKey: false, metaKey: false, altKey: false };
     let lastHighlight = '';
     const updateHighlight = () => {
@@ -87,8 +89,12 @@ export function MapCanvas({ map }: { map: MapData }) {
       request();
     };
     const unsub = useStore.subscribe((s, p) => {
-      if (s.revision !== p.revision) r.setOwners(s.owner);
+      if (s.revision !== p.revision) {
+        r.setOwners(s.owner);
+        r.setMarks(s.outline, s.hatch);
+      }
       if (s.countries !== p.countries) r.setPalette(s.countries);
+      if (s.overlays !== p.overlays) r.setOverlays(s.overlays);
       if (s.hover !== p.hover || s.level !== p.level || s.tool !== p.tool) updateHighlight();
       request();
     });

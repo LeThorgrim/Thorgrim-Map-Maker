@@ -24,6 +24,9 @@ uniform sampler2D uCoast;     // R8: distance to the coast (sea)
 uniform usampler2D uOwner;    // R16UI, 256 wide: country of each location
 uniform sampler2D uPalette;   // RGBA8, 256 wide: colour of each country
 uniform usampler2D uFlags;    // R8UI, 256 wide: 1 = hovered
+uniform usampler2D uOutline;  // R16UI, 256 wide: outlined overlay of each location
+uniform usampler2D uHatch;    // R16UI, 256 wide: hatched overlay of each location
+uniform sampler2D uOverlays;  // RGBA8, 256 wide: colour of each overlay
 uniform vec2 uMapSize;
 uniform vec2 uCenter;
 uniform float uZoom;          // device pixels per map pixel
@@ -47,6 +50,8 @@ uint idAt(vec2 m) {
 }
 ivec2 slot(uint i) { return ivec2(int(i % 256u), int(i / 256u)); }
 uint ownerOf(uint id) { return id == 0u ? 65535u : texelFetch(uOwner, slot(id), 0).r; }
+uint outlineOf(uint id) { return id == 0u ? 0u : texelFetch(uOutline, slot(id), 0).r; }
+uint hatchOf(uint id) { return id == 0u ? 0u : texelFetch(uHatch, slot(id), 0).r; }
 float hash(uint n) {
   n = (n << 13u) ^ n;
   n = n * (n * n * 15731u + 789221u) + 1376312589u;
@@ -72,6 +77,42 @@ float paper(vec2 m) {
 bool otherOwner(vec2 m, float k, uint o) {
   return ownerOf(idAt(m + vec2(k, 0.0))) != o || ownerOf(idAt(m - vec2(k, 0.0))) != o ||
          ownerOf(idAt(m + vec2(0.0, k))) != o || ownerOf(idAt(m - vec2(0.0, k))) != o;
+}
+
+/** True when a pixel at distance k lines from m, in any of the 4 directions, has another outline. */
+bool otherOutline(vec2 m, float k, uint ov) {
+  return outlineOf(idAt(m + vec2(k, 0.0))) != ov || outlineOf(idAt(m - vec2(k, 0.0))) != ov ||
+         outlineOf(idAt(m + vec2(0.0, k))) != ov || outlineOf(idAt(m - vec2(0.0, k))) != ov;
+}
+bool otherHatch(vec2 m, float k, uint ov) {
+  return hatchOf(idAt(m + vec2(k, 0.0))) != ov || hatchOf(idAt(m - vec2(k, 0.0))) != ov ||
+         hatchOf(idAt(m + vec2(0.0, k))) != ov || hatchOf(idAt(m - vec2(0.0, k))) != ov;
+}
+
+// Overlays: extra information drawn over the country colours. A location can carry a hatched
+// overlay and an outlined one at once: the hatching is drawn first, the outline on top.
+
+// Diagonal hatching in map space, so it stays put when panning. The spacing is a power of two of
+// map pixels chosen to stay between 10 and 20 screen pixels: when zooming out, every other stripe
+// disappears instead of the pattern shrinking into a blur. A thin line closes the shape.
+vec3 applyHatch(vec3 c, vec2 m, float e, uint ov) {
+  vec3 col = texelFetch(uOverlays, slot(ov), 0).rgb;
+  float s = exp2(max(1.0, ceil(log2(10.0 * uPx / uZoom))));
+  float t = fract((m.x - m.y) / s);
+  float dist = min(t, 1.0 - t) * s; // to the centre line of the nearest stripe
+  float half_ = 0.2 * s;
+  float stripe = 1.0 - smoothstep(half_ - 0.5 * e, half_ + 0.5 * e, dist);
+  c = mix(c, col, 0.85 * stripe);
+  if (otherHatch(m, e, ov)) c = mix(c, col, 0.9);
+  return c;
+}
+
+// A solid band three lines wide along the inside of the overlay's borders, then a soft fade.
+vec3 applyOutline(vec3 c, vec2 m, float e, uint ov) {
+  vec3 col = texelFetch(uOverlays, slot(ov), 0).rgb;
+  if (otherOutline(m, e, ov) || otherOutline(m, 2.0 * e, ov) || otherOutline(m, 3.0 * e, ov)) return mix(c, col, 0.95);
+  if (otherOutline(m, 5.0 * e, ov)) return mix(c, col, 0.3);
+  return c;
 }
 
 void main() {
@@ -116,6 +157,10 @@ void main() {
     if (r != id || dn != id) c = mix(c, c * 0.7, uZoneBorder);                         // border between locations
   }
 
+  uint hv = hatchOf(id), ol = outlineOf(id);
+  if (hv != 0u) c = applyHatch(c, m, e, hv);
+  if (ol != 0u) c = applyOutline(c, m, e, ol);
+
   if (texelFetch(uFlags, slot(id), 0).r == 1u) c = mix(c, HOVER, 0.35);
   outColor = vec4(c, 1.0);
 }`;
@@ -137,10 +182,11 @@ export class MapRenderer {
   private gl: WebGL2RenderingContext;
   private prog: WebGLProgram;
   private u: Record<string, WebGLUniformLocation | null> = {};
-  private tex: Record<'ids' | 'coast' | 'owner' | 'palette' | 'flags', WebGLTexture>;
+  private tex: Record<'ids' | 'coast' | 'owner' | 'palette' | 'flags' | 'outline' | 'hatch' | 'overlays', WebGLTexture>;
   private rows: number;
   private flags: Uint8Array;
   private palette = new Uint8Array(256 * 256 * 4);
+  private overlayPalette = new Uint8Array(256 * 256 * 4);
   private map: MapData;
   private canvas: HTMLCanvasElement;
 
@@ -160,7 +206,7 @@ export class MapRenderer {
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog) ?? 'link');
     this.prog = prog;
     gl.useProgram(prog);
-    for (const name of ['uIds', 'uCoast', 'uOwner', 'uPalette', 'uFlags', 'uMapSize', 'uCenter', 'uZoom', 'uView', 'uZoneBorder', 'uPx'])
+    for (const name of ['uIds', 'uCoast', 'uOwner', 'uPalette', 'uFlags', 'uOutline', 'uHatch', 'uOverlays', 'uMapSize', 'uCenter', 'uZoom', 'uView', 'uZoneBorder', 'uPx'])
       this.u[name] = gl.getUniformLocation(prog, name);
 
     const buf = gl.createBuffer();
@@ -188,6 +234,9 @@ export class MapRenderer {
       owner: make(2, false),
       palette: make(3, false),
       flags: make(4, false),
+      outline: make(5, false),
+      overlays: make(6, false),
+      hatch: make(7, false),
     };
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.tex.ids);
@@ -204,12 +253,23 @@ export class MapRenderer {
     gl.activeTexture(gl.TEXTURE4);
     gl.bindTexture(gl.TEXTURE_2D, this.tex.flags);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8UI, 256, this.rows, 0, gl.RED_INTEGER, gl.UNSIGNED_BYTE, this.flags);
+    for (const [unit, tex] of [[5, this.tex.outline], [7, this.tex.hatch]] as const) {
+      gl.activeTexture(gl.TEXTURE0 + unit);
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16UI, 256, this.rows, 0, gl.RED_INTEGER, gl.UNSIGNED_SHORT, new Uint16Array(256 * this.rows));
+    }
+    gl.activeTexture(gl.TEXTURE6);
+    gl.bindTexture(gl.TEXTURE_2D, this.tex.overlays);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, 256, 256, 0, gl.RGBA, gl.UNSIGNED_BYTE, this.overlayPalette);
 
     gl.uniform1i(this.u.uIds, 0);
     gl.uniform1i(this.u.uCoast, 1);
     gl.uniform1i(this.u.uOwner, 2);
     gl.uniform1i(this.u.uPalette, 3);
     gl.uniform1i(this.u.uFlags, 4);
+    gl.uniform1i(this.u.uOutline, 5);
+    gl.uniform1i(this.u.uHatch, 7);
+    gl.uniform1i(this.u.uOverlays, 6);
     gl.uniform2f(this.u.uMapSize, map.width, map.height);
   }
 
@@ -228,6 +288,25 @@ export class MapRenderer {
     gl.activeTexture(gl.TEXTURE3);
     gl.bindTexture(gl.TEXTURE_2D, this.tex.palette);
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 256, 256, gl.RGBA, gl.UNSIGNED_BYTE, this.palette);
+  }
+
+  /** Outlined and hatched overlay of each location; each must hold 256 × rows values. */
+  setMarks(outline: Uint16Array, hatch: Uint16Array) {
+    const gl = this.gl;
+    for (const [unit, tex, values] of [[5, this.tex.outline, outline], [7, this.tex.hatch, hatch]] as const) {
+      gl.activeTexture(gl.TEXTURE0 + unit);
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 256, this.rows, gl.RED_INTEGER, gl.UNSIGNED_SHORT, values);
+    }
+  }
+
+  setOverlays(overlays: { id: number; color: string }[]) {
+    this.overlayPalette.fill(0);
+    for (const o of overlays) this.overlayPalette.set([...hexToRgb(o.color), 255], o.id * 4);
+    const gl = this.gl;
+    gl.activeTexture(gl.TEXTURE6);
+    gl.bindTexture(gl.TEXTURE_2D, this.tex.overlays);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 256, 256, gl.RGBA, gl.UNSIGNED_BYTE, this.overlayPalette);
   }
 
   /** Highlights a set of locations (hover). */
@@ -270,7 +349,7 @@ export class MapRenderer {
     this.flags.fill(0);
     this.uploadFlags();
     const target = gl.createTexture()!;
-    gl.activeTexture(gl.TEXTURE5);
+    gl.activeTexture(gl.TEXTURE8);
     gl.bindTexture(gl.TEXTURE_2D, target);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     const fb = gl.createFramebuffer();

@@ -17,7 +17,12 @@ export function Editor({ mapId, start }: { mapId: string; start?: string }) {
   const [map, setMap] = useState<MapData | null>(null);
   const [loadouts, setLoadouts] = useState<LoadoutInfo[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const accent = useStore((s) => s.countries.find((c) => c.id === s.activeId)?.color ?? '#5E6B70');
+  // the panel gem shows the colour of what the brush paints: a country, or an overlay
+  const accent = useStore((s) =>
+    s.layer === 'overlay'
+      ? (s.overlays.find((o) => o.id === s.activeOverlayId)?.color ?? '#5E6B70')
+      : (s.countries.find((c) => c.id === s.activeId)?.color ?? '#5E6B70'),
+  );
 
   useEffect(() => {
     let stop = () => {};

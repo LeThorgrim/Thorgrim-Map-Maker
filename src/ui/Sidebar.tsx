@@ -1,11 +1,12 @@
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { pick, useLang, useT } from '../i18n';
 import type { Level, LoadoutInfo, MapData } from '../map/loadMap';
 import { view } from '../map/view';
 import { download, openFile, saveToFile } from '../state/persist';
 import { startFrom } from '../state/scenarios';
-import { countryName, useStore, type Tool } from '../state/store';
-import { BackIcon, BrushIcon, CloseIcon, EraserIcon, PipetteIcon, PlusIcon, RedoIcon, UndoIcon } from './icons';
+import { useStore, type Tool } from '../state/store';
+import { BackIcon, BrushIcon, CloseIcon, EraserIcon, PipetteIcon, RedoIcon, UndoIcon } from './icons';
+import { CountrySection, OverlaySection } from './Layers';
 import { confirmDialog } from './confirm';
 import { LanguageSwitch } from './LanguageSwitch';
 
@@ -27,9 +28,6 @@ export function Sidebar({ map, loadouts }: { map: MapData; loadouts: LoadoutInfo
   const lang = useLang((s) => s.lang);
   const tool = useStore((s) => s.tool);
   const level = useStore((s) => s.level);
-  const countries = useStore((s) => s.countries);
-  const activeId = useStore((s) => s.activeId);
-  const revision = useStore((s) => s.revision);
   const canUndo = useStore((s) => s.past.length > 0);
   const canRedo = useStore((s) => s.future.length > 0);
   const s = useStore.getState();
@@ -37,14 +35,6 @@ export function Sidebar({ map, loadouts }: { map: MapData; loadouts: LoadoutInfo
   const [message, setMessage] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
-
-  const counts = useMemo(() => {
-    const { owner, map } = useStore.getState();
-    const m = new Map<number, number>();
-    for (let z = 1; z < (map?.count ?? 0); z++) if (owner[z]) m.set(owner[z], (m.get(owner[z]) ?? 0) + 1);
-    return m;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [revision]);
 
   const exportImage = async () => {
     if (!view.renderer) return;
@@ -79,7 +69,6 @@ export function Sidebar({ map, loadouts }: { map: MapData; loadouts: LoadoutInfo
           <LanguageSwitch />
         </div>
         <h1>{pick(map.name, lang)}</h1>
-        <p>{t.panel.intro}</p>
       </header>
 
       {loadouts.length > 0 && (
@@ -133,90 +122,44 @@ export function Sidebar({ map, loadouts }: { map: MapData; loadouts: LoadoutInfo
             </button>
           ))}
         </div>
-        <p className="hint">
-          {t.panel.scopeHintStart} <kbd>{t.panel.keys.shift}</kbd> {t.panel.levels.province.toLowerCase()},{' '}
-          <kbd>{t.panel.keys.ctrl}</kbd> {t.panel.levels.area.toLowerCase()}, <kbd>{t.panel.keys.alt}</kbd>{' '}
-          {t.panel.levels.region.toLowerCase()}.
+        <p className="hint" title={t.panel.scopeHintStart}>
+          <kbd>{t.panel.keys.shift}</kbd> {t.panel.levels.province.toLowerCase()} <kbd>{t.panel.keys.ctrl}</kbd>{' '}
+          {t.panel.levels.area.toLowerCase()} <kbd>{t.panel.keys.alt}</kbd> {t.panel.levels.region.toLowerCase()}
         </p>
       </section>
 
-      <section className="group countries">
-        <h2 className="rule-title">
-          {t.panel.countries} <span className="count">{countries.length}</span>
-        </h2>
-        {countries.length === 0 ? (
-          <p className="empty">{t.panel.noCountries}</p>
-        ) : (
-          <ul className="country-list">
-            {countries.map((c) => {
-              const name = countryName(c, lang);
-              return (
-                <li
-                  key={c.id}
-                  className={c.id === activeId ? 'country active' : 'country'}
-                  style={{ '--c': c.color } as React.CSSProperties}
-                  onClick={() => s.setActive(c.id)}
-                >
-                  <label className="swatch" title={t.panel.changeColor} onClick={(e) => e.stopPropagation()}>
-                    <input type="color" value={c.color} onChange={(e) => s.recolorCountry(c.id, e.target.value)} />
-                  </label>
-                  <input
-                    className="name"
-                    value={name}
-                    aria-label={t.panel.countryName}
-                    onFocus={() => s.setActive(c.id)}
-                    onChange={(e) => s.renameCountry(c.id, e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-                  />
-                  <span className="n" title={t.panel.owned}>
-                    {counts.get(c.id) ?? 0}
-                  </span>
-                  <button
-                    className="del"
-                    title={t.panel.remove(name)}
-                    aria-label={t.panel.remove(name)}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      s.deleteCountry(c.id);
-                    }}
-                  >
-                    <CloseIcon />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-        <button className="btn add" onClick={() => s.addCountry(t.panel.newCountryName(useStore.getState().nextId))}>
-          <PlusIcon /> {t.panel.newCountry}
-        </button>
-      </section>
+      <div className="layers">
+        <CountrySection />
+        <OverlaySection />
+      </div>
 
       <footer className="panel-foot">
-        <div className="history">
-          <button className="btn" onClick={() => s.undo()} disabled={!canUndo} title={t.panel.undo} aria-label={t.panel.undo}>
+        <div className="foot-row">
+          <button className="btn icon" onClick={() => s.undo()} disabled={!canUndo} title={t.panel.undo} aria-label={t.panel.undo}>
             <UndoIcon />
           </button>
-          <button className="btn" onClick={() => s.redo()} disabled={!canRedo} title={t.panel.redo} aria-label={t.panel.redo}>
+          <button className="btn icon" onClick={() => s.redo()} disabled={!canRedo} title={t.panel.redo} aria-label={t.panel.redo}>
             <RedoIcon />
           </button>
-        </div>
-        <div className="files">
-          <button className="btn-banner" onClick={exportImage} disabled={exporting}>
-            {exporting ? t.panel.exporting : t.panel.exportPng}
+          <button className="btn" onClick={saveToFile}>
+            {t.panel.save}
           </button>
-          <button className="btn" onClick={saveToFile}>{t.panel.save}</button>
-          <button className="btn" onClick={() => fileInput.current?.click()}>{t.panel.open}</button>
-          <button
-            className="danger"
-            onClick={async () => {
-              const ok = await confirmDialog({ title: t.panel.clearTitle, message: t.panel.confirmClear, confirmLabel: t.panel.clear, danger: true });
-              if (ok) s.clearMap();
-            }}
-          >
-            {t.panel.clear}
+          <button className="btn" onClick={() => fileInput.current?.click()}>
+            {t.panel.open}
           </button>
         </div>
+        <button className="btn-banner" onClick={exportImage} disabled={exporting}>
+          {exporting ? t.panel.exporting : t.panel.exportPng}
+        </button>
+        <button
+          className="danger"
+          onClick={async () => {
+            const ok = await confirmDialog({ title: t.panel.clearTitle, message: t.panel.confirmClear, confirmLabel: t.panel.clear, danger: true });
+            if (ok) s.clearMap();
+          }}
+        >
+          {t.panel.clear}
+        </button>
         <input
           ref={fileInput}
           type="file"

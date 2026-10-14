@@ -40,6 +40,22 @@ the OSM coastlines (134 MB); `loadouts` downloads historical-basemaps snapshots.
 | Undo / redo | `Ctrl+Z` / `Ctrl+Y` (or `Ctrl+Shift+Z`) |
 | New country | `N` |
 
+**Countries and overlays.** *Countries* fill locations with a colour. *Overlays* carry extra
+information on top (alliances, occupations, claims, religions…), drawn either as a coloured
+outline along their borders or as diagonal hatching. Each style is a separate channel, so a
+location can carry one outlined overlay and one hatched overlay at the same time. Selecting a
+country or an overlay in the side panel decides what the tools work on:
+
+- the brush writes the active overlay into the channel of its style (replacing the overlay of
+  that style there, never the other one);
+- the eraser clears only that channel, so an outline can be removed without touching the hatching;
+- on a location with both, the pipette picks the overlay of the other style, so two clicks cycle
+  between them;
+- switching an overlay to the other style moves its locations to the other channel; where another
+  overlay of that style is already present, a confirmation lists it first (undoable).
+
+Both sections of the panel fold away.
+
 Maps start blank. "Start from" replaces the current map with a loadout (undoable with `Ctrl+Z`);
 the home screen also links straight to each loadout. Each map is saved automatically in the
 browser. "Save" and "Open" use a `.mapmaker.json` file; "Export as PNG" renders the whole map
@@ -147,7 +163,9 @@ texture, then the colour of that country in a palette texture. Painting a locati
 in an array of ~5,000 entries and uploads it to the GPU. Borders are computed in the shader by
 comparing neighbours one screen pixel away.
 
-**State.** `owner` is a `Uint16Array` (country of each location). Countries have stable ids, so
+**State.** `owner` is a `Uint16Array` (country of each location); `outline` and `hatch` hold the
+overlay of each location in each channel. Saves from before the two channels existed (a single
+`marks` array) are split by style when opened. Countries have stable ids, so
 recolouring a country recolours all its lands without touching `owner`. The history stores diffs
 (locations, before, after); deleting a country and loading a loadout are undoable too.
 

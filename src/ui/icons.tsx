@@ -57,3 +57,21 @@ export const BackIcon = () => (
     <path d="m15 18-6-6 6-6" />
   </svg>
 );
+export const ChevronIcon = () => (
+  <svg {...base} width={14} height={14} strokeWidth={2} className="chevron" aria-hidden>
+    <path d="m9 6 6 6-6 6" />
+  </svg>
+);
+/** Overlay style: a coloured outline. */
+export const OutlineIcon = () => (
+  <svg {...base} width={14} height={14} strokeWidth={2.2} aria-hidden>
+    <rect x="4" y="4" width="16" height="16" rx="1" />
+  </svg>
+);
+/** Overlay style: hatching. */
+export const HatchIcon = () => (
+  <svg {...base} width={14} height={14} strokeWidth={1.8} aria-hidden>
+    <rect x="4" y="4" width="16" height="16" rx="1" />
+    <path d="M4 12 12 4M4 20 20 4M12 20l8-8" />
+  </svg>
+);

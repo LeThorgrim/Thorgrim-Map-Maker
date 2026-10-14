@@ -19,7 +19,14 @@ export function startAutosave(mapId: string) {
     }
   };
   const unsub = useStore.subscribe((s, prev) => {
-    if (s.revision === prev.revision && s.countries === prev.countries && s.activeId === prev.activeId) return;
+    if (
+      s.revision === prev.revision &&
+      s.countries === prev.countries &&
+      s.activeId === prev.activeId &&
+      s.overlays === prev.overlays &&
+      s.activeOverlayId === prev.activeOverlayId
+    )
+      return;
     clearTimeout(timer);
     timer = window.setTimeout(save, 400);
   });
