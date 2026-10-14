@@ -17,7 +17,8 @@ export const fr: Messages = {
     open: 'Ouvrir la carte',
     resume: 'Reprendre ma carte',
     progress: (painted, countries) => `${painted} locations peintes, ${countries} pays`,
-    scenarios: 'Ou partir de',
+    scenarios: 'Partir d’une date',
+    blankHint: 'Aucun pays : peignez les vôtres.',
   },
 
   editor: {
@@ -34,7 +35,9 @@ export const fr: Messages = {
     startFrom: 'Partir de',
     blank: 'Vierge',
     loadingScenario: 'Chargement…',
-    confirmReplace: (name) => `Remplacer la carte actuelle par « ${name} » ? Ctrl+Z permet d'annuler.`,
+    replaceTitle: 'Remplacer la carte ?',
+    confirmReplace: (name) => `La carte actuelle sera remplacée par « ${name} ». Ctrl+Z permet d’annuler.`,
+    replace: 'Remplacer',
     tool: 'Outil',
     tools: { paint: 'Peindre', erase: 'Gommer', pick: 'Pipette' },
     scope: 'Un clic colorie…',
@@ -56,9 +59,14 @@ export const fr: Messages = {
     save: 'Enregistrer',
     open: 'Ouvrir',
     clear: 'Tout effacer',
-    confirmClear: 'Retirer tous les pays de la carte ? Ctrl+Z permet d’annuler.',
+    clearTitle: 'Tout effacer ?',
+    confirmClear: 'Tous les pays et toutes les locations peintes seront retirés. Ctrl+Z permet d’annuler.',
     close: 'Fermer',
     language: 'Langue',
+  },
+
+  dialog: {
+    cancel: 'Annuler',
   },
 
   errors: {

@@ -82,6 +82,7 @@ interface State {
   renameCountry(id: number, name: string): void;
   recolorCountry(id: number, color: string): void;
   deleteCountry(id: number): void;
+  /** Removes every country and every painted location. */
   clearMap(): void;
   /** Replaces the whole map with a loadout (or with a blank map when `loadout` is null). */
   applyLoadout(loadout: Loadout | null): void;
@@ -226,19 +227,11 @@ export const useStore = create<State>()((set, get) => {
       push({ kind: 'deleteCountry', country: countries[index], index, change });
     },
 
+    // Removes every country and every painted location (undoable as one step).
     clearMap: () => {
-      const { owner, revision } = get();
-      const change: Change = { zones: [], before: [], after: [] };
-      for (let z = 1; z < owner.length; z++)
-        if (owner[z]) {
-          change.zones.push(z);
-          change.before.push(owner[z]);
-          change.after.push(0);
-          owner[z] = 0;
-        }
-      if (!change.zones.length) return;
-      set({ revision: revision + 1 });
-      push({ kind: 'paint', change });
+      const { countries, owner } = get();
+      if (countries.length === 0 && !owner.some((o) => o > 0)) return;
+      get().applyLoadout(null);
     },
 
     applyLoadout: (loadout) => {

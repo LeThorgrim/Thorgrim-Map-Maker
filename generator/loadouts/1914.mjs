@@ -6,7 +6,7 @@ import { adm, and, iso, near, north, reg, south, west } from './dsl.mjs';
 export default {
   id: '1914',
   year: 1914,
-  name: { en: '1914: the Great War', fr: '1914 : la Grande Guerre' },
+  name: { en: 'The Great War', fr: 'La Grande Guerre' },
   description: {
     en: 'Empires at their peak: Austria-Hungary, the German and Russian Empires and a shrinking Ottoman Empire.',
     fr: 'Les empires à leur apogée : Autriche-Hongrie, empires allemand et russe, Empire ottoman en recul.',

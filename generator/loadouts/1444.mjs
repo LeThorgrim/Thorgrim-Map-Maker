@@ -7,7 +7,9 @@ import { adm, and, box, east, iso, near, north, not, reg, south, west } from './
 export default {
   id: '1444',
   year: 1444,
-  name: { en: '1444: the eve of the Renaissance', fr: '1444 : à l’aube de la Renaissance' },
+  // the home screen thumbnail shows this loadout
+  thumbnail: true,
+  name: { en: 'The eve of the Renaissance', fr: 'À l’aube de la Renaissance' },
   description: {
     en: 'Byzantium clings to Constantinople, Burgundy rises between France and the Empire, the Hundred Years’ War pauses.',
     fr: 'Byzance s’accroche à Constantinople, la Bourgogne s’élève entre France et Empire, la guerre de Cent Ans fait une pause.',

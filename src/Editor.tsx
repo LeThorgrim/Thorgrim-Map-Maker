@@ -42,7 +42,7 @@ export function Editor({ mapId, start }: { mapId: string; start?: string }) {
     if (!map || !start) return;
     const lo = loadouts.find((l) => l.id === start);
     window.history.replaceState(null, '', `#/map/${encodeURIComponent(map.id)}`);
-    if (lo) startFrom(map, lo, t.panel.confirmReplace, t.panel.blank).catch((e) => setError(String(e)));
+    if (lo) startFrom(map, lo, t).catch((e) => setError(String(e)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, loadouts, start]);
 
@@ -101,13 +101,13 @@ export function Editor({ mapId, start }: { mapId: string; start?: string }) {
       <MapCanvas map={map} />
       <Sidebar map={map} loadouts={loadouts} />
       <div className="zoom">
-        <button onClick={() => view.zoomBy(1.4)} title={t.editor.zoomIn} aria-label={t.editor.zoomIn}>
+        <button className="btn" onClick={() => view.zoomBy(1.4)} title={t.editor.zoomIn} aria-label={t.editor.zoomIn}>
           <PlusIcon />
         </button>
-        <button onClick={() => view.zoomBy(1 / 1.4)} title={t.editor.zoomOut} aria-label={t.editor.zoomOut}>
+        <button className="btn" onClick={() => view.zoomBy(1 / 1.4)} title={t.editor.zoomOut} aria-label={t.editor.zoomOut}>
           <MinusIcon />
         </button>
-        <button onClick={() => view.fit()} title={t.editor.fit} aria-label={t.editor.fit}>
+        <button className="btn" onClick={() => view.fit()} title={t.editor.fit} aria-label={t.editor.fit}>
           <FitIcon />
         </button>
       </div>

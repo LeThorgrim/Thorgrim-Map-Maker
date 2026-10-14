@@ -725,6 +725,86 @@ for (let z = 1; z < NZ; z++) {
 }
 log(`Names assigned (${unnamed} location(s) without a nearby town)`);
 
+// ================================================================ land continuity
+/**
+ * Makes groups (provinces, areas or regions) continuous by land. Each group keeps its largest
+ * piece; every other piece that touches by land a group with the same parent (the provinces of
+ * one unit, the areas of one region) joins the one it shares the longest border with, a group of
+ * the same present-day country first. Failing
+ * that, a small piece (under `maxShare` of the group) joins a neighbouring group of the same
+ * present-day country. Islands, and pieces that only touch other countries (e.g. Zeelandic
+ * Flanders), stay where they are.
+ *
+ * @param items     ids of the items (locations, provinces or areas)
+ * @param groupOf   Map item → group, updated in place
+ * @param landAdj   item → Map(neighbour item → border length in pixels, 0 = sea link)
+ * @param size      item → area in pixels
+ * @param country   item → present-day country index (or -1 when mixed)
+ * @param parent    group → parent key (unit of a province, region of an area), or undefined
+ * @param maxShare  largest share of its group that a piece may have to join another country group
+ * @returns number of items moved
+ */
+function makeContiguous(items, groupOf, landAdj, size, country, parent = () => undefined, maxShare = 0.25) {
+  let moved = 0;
+  for (let round = 0; round < 10; round++) {
+    const members = new Map();
+    for (const it of items) {
+      const g = groupOf.get(it);
+      if (!members.has(g)) members.set(g, []);
+      members.get(g).push(it);
+    }
+    const groupSize = new Map(), groupCountries = new Map();
+    for (const [g, list] of members) {
+      groupSize.set(g, list.reduce((s, it) => s + size(it), 0));
+      groupCountries.set(g, new Set(list.map(country)));
+    }
+    const pieces = [];
+    for (const [g, list] of members) {
+      const seen = new Set();
+      const ps = [];
+      for (const start of list) {
+        if (seen.has(start)) continue;
+        const piece = [start];
+        seen.add(start);
+        for (let i = 0; i < piece.length; i++)
+          for (const [n, len] of landAdj(piece[i]))
+            if (len > 0 && !seen.has(n) && groupOf.get(n) === g) (seen.add(n), piece.push(n));
+        ps.push(piece);
+      }
+      if (ps.length < 2) continue;
+      ps.sort((a, b) => b.reduce((s, it) => s + size(it), 0) - a.reduce((s, it) => s + size(it), 0));
+      for (const p of ps.slice(1)) pieces.push({ g, items: p, size: p.reduce((s, it) => s + size(it), 0) });
+    }
+    pieces.sort((a, b) => a.size - b.size);
+    let changed = 0;
+    for (const p of pieces) {
+      const c = country(p.items[0]);
+      const pp = parent(p.g);
+      const border = new Map();
+      for (const it of p.items)
+        for (const [n, len] of landAdj(it)) {
+          const h = groupOf.get(n);
+          if (len > 0 && h !== undefined && h !== p.g) border.set(h, (border.get(h) ?? 0) + len);
+        }
+      const pickBest = (ok) => {
+        let best, bl = 2;
+        for (const [h, len] of border) if (ok(h) && len > bl) (bl = len), (best = h);
+        return best;
+      };
+      const sameCountry = (h) => groupCountries.get(h)?.has(c);
+      let best;
+      if (pp !== undefined) best = pickBest((h) => parent(h) === pp && sameCountry(h)) ?? pickBest((h) => parent(h) === pp);
+      if (best === undefined && p.size < maxShare * groupSize.get(p.g)) best = pickBest(sameCountry);
+      if (best === undefined) continue;
+      for (const it of p.items) groupOf.set(it, best);
+      changed += p.items.length;
+    }
+    moved += changed;
+    if (!changed) break;
+  }
+  return moved;
+}
+
 // ================================================================ provinces, areas, regions
 const zoneAdj = st.adj.map((m) => new Map(m));
 const provOf = new Int32Array(NZ).fill(-1);
@@ -757,9 +837,21 @@ for (let u = 0; u < U; u++) {
     provinces[g].name = locName[cap];
   }
 }
+{
+  const items = [...Array(NZ).keys()].slice(1);
+  const groupOf = new Map(items.map((z) => [z, provOf[z]]));
+  const moved = makeContiguous(items, groupOf, (z) => st.adj[z], (z) => st.area[z], (z) => units[locUnit[z]].country, (g) => provinces[g].unit, 0.5);
+  for (const p of provinces) p.zones = [];
+  for (const z of items) {
+    provOf[z] = groupOf.get(z);
+    provinces[provOf[z]].zones.push(z);
+  }
+  log(`Province continuity: ${moved} location(s) moved`);
+}
 const P = provinces.length;
 const pX = new Float64Array(P), pY = new Float64Array(P), pW = new Float64Array(P), pPop = new Float64Array(P);
 const pAdj = Array.from({ length: P }, () => new Map());
+const pLand = Array.from({ length: P }, () => new Map()); // land borders only, in pixels
 for (let z = 1; z < NZ; z++) {
   const p = provOf[z];
   pX[p] += st.cx[z] * st.area[z];
@@ -767,6 +859,7 @@ for (let z = 1; z < NZ; z++) {
   pW[p] += st.area[z];
   pPop[p] += locPop[z];
   for (const [o, l] of zoneAdj[z]) if (provOf[o] !== p) pAdj[p].set(provOf[o], Math.max(pAdj[p].get(provOf[o]) ?? 0, l));
+  for (const [o, l] of st.adj[z]) if (provOf[o] !== p) pLand[p].set(provOf[o], (pLand[p].get(provOf[o]) ?? 0) + l);
 }
 for (let p = 0; p < P; p++) (pX[p] /= pW[p]), (pY[p] /= pW[p]);
 
@@ -812,8 +905,39 @@ for (const g of groups.values()) {
       name = wholeCountry ? countries[units[provinces[biggest].unit].country].label : provinces[biggest].name;
     }
     for (const p of part) areaOf[p] = areas.length;
-    areas.push({ name, region: g.region, provinces: part });
+    areas.push({ name, region: g.region, provinces: part, auto: !g.name || parts.length > 1 });
   }
+}
+{
+  const items = [...Array(P).keys()];
+  const groupOf = new Map(items.map((p) => [p, areaOf[p]]));
+  const moved = makeContiguous(items, groupOf, (p) => pLand[p], (p) => pW[p], (p) => units[provinces[p].unit].country, (g) => areas[g].region);
+  for (const a of areas) a.provinces = [];
+  for (const p of items) {
+    areaOf[p] = groupOf.get(p);
+    areas[areaOf[p]].provinces.push(p);
+  }
+  // areas named after a province take the name of their largest remaining one
+  for (const a of areas)
+    if (a.auto && a.provinces.length) a.name = provinces[a.provinces.reduce((x, y) => (pPop[y] > pPop[x] ? y : x))].name;
+  log(`Area continuity: ${moved} province(s) moved`);
+}
+{
+  // regions: items are areas; an area's country is the one of most of its provinces
+  const aLand = areas.map(() => new Map());
+  const aSize = areas.map((a) => a.provinces.reduce((s, p) => s + pW[p], 0));
+  const aCountry = areas.map((a) => {
+    const n = new Map();
+    for (const p of a.provinces) n.set(units[provinces[p].unit].country, (n.get(units[provinces[p].unit].country) ?? 0) + pW[p]);
+    return [...n].sort((x, y) => y[1] - x[1])[0]?.[0] ?? -1;
+  });
+  for (let p = 0; p < P; p++)
+    for (const [o, l] of pLand[p]) if (areaOf[o] !== areaOf[p]) aLand[areaOf[p]].set(areaOf[o], (aLand[areaOf[p]].get(areaOf[o]) ?? 0) + l);
+  const items = areas.map((_, i) => i).filter((i) => areas[i].provinces.length);
+  const groupOf = new Map(items.map((i) => [i, areas[i].region]));
+  const moved = makeContiguous(items, groupOf, (i) => aLand[i], (i) => aSize[i], (i) => aCountry[i]);
+  for (const i of items) areas[i].region = groupOf.get(i);
+  log(`Region continuity: ${moved} area(s) moved`);
 }
 // Duplicate area names (e.g. two batches around the same city) get the name of a province.
 for (const lang of LANGS) {

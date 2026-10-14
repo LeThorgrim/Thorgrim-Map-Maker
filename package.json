@@ -9,7 +9,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "loadouts": "node --max-old-space-size=4000 generator/loadouts.mjs"
+    "loadouts": "node --max-old-space-size=4000 generator/loadouts.mjs",
+    "check-map": "node generator/check-continuity.mjs"
   },
   "dependencies": {
     "fast-png": "^8.0.0",

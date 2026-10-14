@@ -21,9 +21,10 @@ export function Home() {
   return (
     <div className="home">
       <header className="home-head">
-        <div className="home-title">
-          <h1>{t.appName}</h1>
-          <LanguageSwitch className="dark" />
+        <LanguageSwitch className="large" />
+        <h1>{t.appName}</h1>
+        <div className="ornament" aria-hidden>
+          <span />
         </div>
         <p>{t.home.tagline}</p>
       </header>
@@ -37,7 +38,7 @@ export function Home() {
 
       {maps && (
         <section aria-labelledby="maps-title">
-          <h2 id="maps-title">
+          <h2 id="maps-title" className="rule-title">
             {t.home.available} <span className="count">{maps.length}</span>
           </h2>
           <ul className="map-list">
@@ -45,7 +46,7 @@ export function Home() {
               const saved = savedSummary(m.id);
               const href = `#/map/${encodeURIComponent(m.id)}`;
               return (
-                <li key={m.id} className="map-card">
+                <li key={m.id} className="map-card frame">
                   <a className="map-card-image" href={href} tabIndex={-1} aria-hidden>
                     <img src={thumbnailUrl(m.id)} alt="" width={720} height={566} />
                   </a>
@@ -72,24 +73,33 @@ export function Home() {
                         <dd>{fmt.format(m.regions)}</dd>
                       </div>
                     </dl>
+
+                    {m.loadouts?.length > 0 && (
+                      <nav aria-label={t.home.scenarios}>
+                        <ol className="bookmarks">
+                          {m.loadouts.map((lo) => (
+                            <li key={lo.id}>
+                              <a href={`${href}/${encodeURIComponent(lo.id)}`}>
+                                <span className="year">{lo.year}</span>
+                                <span>
+                                  <strong>{pick(lo.name, lang)}</strong>
+                                  <small>{pick(lo.description, lang)}</small>
+                                </span>
+                              </a>
+                            </li>
+                          ))}
+                        </ol>
+                      </nav>
+                    )}
+
                     <div className="map-card-action">
-                      <a className="open" href={href}>
+                      <a className="btn-banner" href={href}>
                         {saved?.painted ? t.home.resume : t.home.open}
                       </a>
-                      {saved?.painted ? (
-                        <span className="progress">{t.home.progress(fmt.format(saved.painted), saved.countries)}</span>
-                      ) : null}
+                      <span className="progress">
+                        {saved?.painted ? t.home.progress(fmt.format(saved.painted), saved.countries) : t.home.blankHint}
+                      </span>
                     </div>
-                    {m.loadouts?.length > 0 && (
-                      <div className="map-card-scenarios">
-                        <span>{t.home.scenarios}</span>
-                        {m.loadouts.map((lo) => (
-                          <a key={lo.id} href={`${href}/${encodeURIComponent(lo.id)}`} title={pick(lo.description, lang)}>
-                            {lo.id === 'today' ? pick(lo.name, lang) : lo.year}
-                          </a>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </li>
               );

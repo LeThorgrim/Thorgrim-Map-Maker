@@ -32,7 +32,7 @@ export function HoverCard({ map }: { map: MapData }) {
       <p className="owner">
         {country ? (
           <>
-            <span className="dot" style={{ background: country.color }} />
+            <span className="dot" style={{ '--c': country.color } as React.CSSProperties} />
             {countryName(country, lang)}
           </>
         ) : (

@@ -13,14 +13,14 @@
       "locations": 5160,
       "provinces": 1335,
       "areas": 341,
-      "regions": 41,
+      "regions": 42,
       "loadouts": [
         {
           "id": "1444",
           "year": 1444,
           "name": {
-            "en": "1444: the eve of the Renaissance",
-            "fr": "1444 : à l’aube de la Renaissance"
+            "en": "The eve of the Renaissance",
+            "fr": "À l’aube de la Renaissance"
           },
           "description": {
             "en": "Byzantium clings to Constantinople, Burgundy rises between France and the Empire, the Hundred Years’ War pauses.",
@@ -31,8 +31,8 @@
           "id": "1914",
           "year": 1914,
           "name": {
-            "en": "1914: the Great War",
-            "fr": "1914 : la Grande Guerre"
+            "en": "The Great War",
+            "fr": "La Grande Guerre"
           },
           "description": {
             "en": "Empires at their peak: Austria-Hungary, the German and Russian Empires and a shrinking Ottoman Empire.",

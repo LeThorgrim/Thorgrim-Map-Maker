@@ -16,7 +16,8 @@ export const en = {
     open: 'Open map',
     resume: 'Resume my map',
     progress: (painted: string, countries: number) => `${painted} locations painted, ${countries} ${countries === 1 ? 'country' : 'countries'}`,
-    scenarios: 'Or start from',
+    scenarios: 'Start from a date',
+    blankHint: 'No countries: paint your own.',
   },
 
   editor: {
@@ -33,7 +34,9 @@ export const en = {
     startFrom: 'Start from',
     blank: 'Blank',
     loadingScenario: 'Loading…',
-    confirmReplace: (name: string) => `Replace the current map with “${name}”? You can undo this with Ctrl+Z.`,
+    replaceTitle: 'Replace the map?',
+    confirmReplace: (name: string) => `The current map will be replaced by “${name}”. You can undo this with Ctrl+Z.`,
+    replace: 'Replace',
     tool: 'Tool',
     tools: { paint: 'Paint', erase: 'Erase', pick: 'Pick' },
     scope: 'A click paints…',
@@ -55,9 +58,14 @@ export const en = {
     save: 'Save',
     open: 'Open',
     clear: 'Clear all',
-    confirmClear: 'Remove every country from the map? You can undo this with Ctrl+Z.',
+    clearTitle: 'Clear the map?',
+    confirmClear: 'Every country and every painted location will be removed. You can undo this with Ctrl+Z.',
     close: 'Close',
     language: 'Language',
+  },
+
+  dialog: {
+    cancel: 'Cancel',
   },
 
   errors: {

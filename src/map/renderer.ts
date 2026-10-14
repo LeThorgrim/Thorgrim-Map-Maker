@@ -32,11 +32,13 @@ uniform float uZoneBorder;    // opacity of the borders between locations
 uniform float uPx;            // line width, in device pixels
 out vec4 outColor;
 
-const vec3 BACKDROP  = vec3(0.157, 0.204, 0.231);
-const vec3 UNCLAIMED = vec3(0.808, 0.812, 0.757);
-const vec3 INK       = vec3(0.106, 0.157, 0.184);
-const vec3 SHALLOW   = vec3(0.553, 0.651, 0.678);
-const vec3 DEEP      = vec3(0.302, 0.400, 0.447);
+// Palette of an old campaign map: parchment land, sepia ink, slate-teal sea.
+const vec3 BACKDROP  = vec3(0.090, 0.067, 0.047);
+const vec3 UNCLAIMED = vec3(0.851, 0.788, 0.639);
+const vec3 INK       = vec3(0.165, 0.114, 0.071);
+const vec3 SHALLOW   = vec3(0.494, 0.612, 0.612);
+const vec3 DEEP      = vec3(0.196, 0.310, 0.353);
+const vec3 HOVER     = vec3(1.000, 0.925, 0.690);
 
 uint idAt(vec2 m) {
   ivec2 p = ivec2(floor(m));
@@ -50,6 +52,27 @@ float hash(uint n) {
   n = n * (n * n * 15731u + 789221u) + 1376312589u;
   return float(n & 0x7fffffffu) / float(0x7fffffff);
 }
+float hash2(ivec2 p) { return hash(uint(p.x) * 73856093u ^ uint(p.y) * 19349663u); }
+// Smooth value noise in map coordinates: stays put when panning and zooming.
+float vnoise(vec2 x) {
+  vec2 i = floor(x), f = fract(x);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  ivec2 p = ivec2(i);
+  return mix(mix(hash2(p), hash2(p + ivec2(1, 0)), u.x), mix(hash2(p + ivec2(0, 1)), hash2(p + ivec2(1, 1)), u.x), u.y);
+}
+// Paper grain. Fine octaves only appear once zoomed in enough to see them: drawn smaller than a
+// screen pixel they would turn into flickering speckle.
+float paper(vec2 m) {
+  float w1 = smoothstep(0.12, 0.45, uZoom), w2 = smoothstep(0.6, 1.6, uZoom);
+  float n = 0.35 * vnoise(m / 120.0 + 3.0) + 0.3 * vnoise(m / 40.0 - 5.0) + w1 * 0.25 * vnoise(m / 9.0) + w2 * 0.15 * vnoise(m / 2.3 + 17.0);
+  return 0.5 + (n - 0.5 * (0.65 + 0.25 * w1 + 0.15 * w2)) / (0.65 + 0.25 * w1 + 0.15 * w2);
+}
+
+/** True when a pixel at distance k lines from m, in any of the 4 directions, has another owner. */
+bool otherOwner(vec2 m, float k, uint o) {
+  return ownerOf(idAt(m + vec2(k, 0.0))) != o || ownerOf(idAt(m - vec2(k, 0.0))) != o ||
+         ownerOf(idAt(m + vec2(0.0, k))) != o || ownerOf(idAt(m - vec2(0.0, k))) != o;
+}
 
 void main() {
   vec2 frag = vec2(gl_FragCoord.x, uView.y - gl_FragCoord.y);
@@ -59,36 +82,41 @@ void main() {
     return;
   }
   float e = uPx / uZoom; // one line, in map pixels
+  float grain = paper(m);
   uint id = idAt(m);
 
   if (id == 0u) {
-    // Sea: gradient by distance to the coast, and two shore lines.
+    // Sea: depth gradient, slow swell texture, and two engraved shore lines.
     float d = texture(uCoast, m / uMapSize).r * 127.5;
-    vec3 c = mix(SHALLOW, DEEP, smoothstep(0.0, 70.0, d));
+    vec3 c = mix(SHALLOW, DEEP, smoothstep(0.0, 80.0, d));
+    c *= 0.95 + 0.07 * vnoise(m / 28.0 + vec2(0.0, m.x / 90.0)) + 0.03 * grain;
     float w = max(e, 0.6);
-    c = mix(c, SHALLOW * 1.07, 0.55 * (1.0 - smoothstep(w * 0.5, w, abs(d - 6.0))));
-    c = mix(c, SHALLOW, 0.25 * (1.0 - smoothstep(w * 0.5, w, abs(d - 15.0))));
+    c = mix(c, INK, 0.18 * (1.0 - smoothstep(w * 0.5, w, abs(d - 5.0))));
+    c = mix(c, INK, 0.09 * (1.0 - smoothstep(w * 0.5, w, abs(d - 12.0))));
     outColor = vec4(c, 1.0);
     return;
   }
 
   uint o = ownerOf(id);
   vec3 c = o == 0u
-    ? UNCLAIMED + (hash(id) - 0.5) * 0.035
-    : texelFetch(uPalette, slot(o), 0).rgb * (0.985 + hash(id) * 0.03);
+    ? UNCLAIMED * (0.985 + (hash(id) - 0.5) * 0.04)
+    : texelFetch(uPalette, slot(o), 0).rgb * (0.975 + hash(id) * 0.05);
+  // painted-on-paper look: the grain shows through every colour
+  c *= 0.9 + 0.16 * grain;
 
   uint r = idAt(m + vec2(e, 0.0)), l = idAt(m - vec2(e, 0.0));
-  uint d = idAt(m + vec2(0.0, e)), u = idAt(m - vec2(0.0, e));
+  uint dn = idAt(m + vec2(0.0, e)), up = idAt(m - vec2(0.0, e));
 
-  if (r == 0u || l == 0u || d == 0u || u == 0u) {
-    c = mix(c, INK, 0.8);                         // coast
-  } else if (ownerOf(r) != o || ownerOf(l) != o || ownerOf(d) != o || ownerOf(u) != o) {
-    c = o == 0u ? mix(c, INK, 0.45) : c * 0.42;   // border between countries
-  } else if (r != id || d != id) {
-    c = mix(c, c * 0.72, uZoneBorder);            // border between locations
+  if (r == 0u || l == 0u || dn == 0u || up == 0u) {
+    c = mix(c, INK, 0.85);                          // coast
+  } else if (otherOwner(m, e, o)) {
+    c = o == 0u ? mix(c, INK, 0.5) : mix(c * 0.35, INK, 0.35); // border between countries
+  } else {
+    if (o != 0u && (otherOwner(m, 2.5 * e, o) || otherOwner(m, 4.0 * e, o))) c *= 0.82; // inner shading of a border
+    if (r != id || dn != id) c = mix(c, c * 0.7, uZoneBorder);                         // border between locations
   }
 
-  if (texelFetch(uFlags, slot(id), 0).r == 1u) c = mix(c, vec3(1.0), 0.3);
+  if (texelFetch(uFlags, slot(id), 0).r == 1u) c = mix(c, HOVER, 0.35);
   outColor = vec4(c, 1.0);
 }`;
 

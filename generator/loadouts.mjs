@@ -9,7 +9,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { decode } from 'fast-png';
+import { decode, encode } from 'fast-png';
 import { makeProjection, polygonsOf, scanRings } from './lib.mjs';
 import { LANGS } from './realdata.mjs';
 
@@ -27,6 +27,7 @@ const DIR = path.join(ROOT, 'public', 'maps', MAP_ID);
 
 const data = JSON.parse(fs.readFileSync(path.join(DIR, 'zones.json'), 'utf8'));
 const { width: W, height: H, data: ids } = decode(fs.readFileSync(path.join(DIR, 'ids.png')));
+const coast = decode(fs.readFileSync(path.join(DIR, 'coast.png'))).data;
 const { projection } = makeProjection(data.projection.width, data.projection);
 const NZ = data.locations.province.length;
 
@@ -172,6 +173,10 @@ async function build(name) {
     countries: keys.map((k) => ({ name: labelOf(k), color: colors.get(k) })),
     owner: runs,
   };
+  if (def.thumbnail) {
+    const rgb = colorsOf(keys, colors);
+    fs.writeFileSync(path.join(DIR, 'thumb.png'), thumbnail(owner.map((o) => (o ? rgb.get(o) : null))));
+  }
   fs.mkdirSync(path.join(DIR, 'loadouts'), { recursive: true });
   fs.writeFileSync(path.join(DIR, 'loadouts', `${def.id}.json`), JSON.stringify(out));
   const unowned = owner.slice(1).filter((o) => !o).length;
@@ -182,6 +187,39 @@ async function build(name) {
       .join(', ')}`,
   );
   return { id: def.id, year: def.year, name: def.name, description: def.description };
+}
+
+function colorsOf(keys, colors) {
+  return new Map(keys.map((k) => [k, [1, 3, 5].map((i) => parseInt(colors.get(k).slice(i, i + 2), 16))]));
+}
+
+/** Home screen thumbnail in the colours of the map renderer: parchment, sepia ink, slate-teal sea. */
+function thumbnail(fill, tw = 720) {
+  const th = Math.round((tw * H) / W), s = W / tw;
+  const out = new Uint8Array(tw * th * 3);
+  const PARCHMENT = [217, 201, 163], INK = [42, 29, 18], SHALLOW = [126, 156, 156], DEEP = [50, 79, 90];
+  const at = (i, j) => ids[Math.min(H - 1, Math.floor(j * s)) * W + Math.min(W - 1, Math.floor(i * s))];
+  for (let j = 0; j < th; j++)
+    for (let i = 0; i < tw; i++) {
+      const z = at(i, j);
+      let c;
+      if (!z) {
+        const t = Math.min(1, coast[Math.floor(j * s) * W + Math.floor(i * s)] / 160);
+        const k = t * t * (3 - 2 * t);
+        c = SHALLOW.map((v, n) => v + (DEEP[n] - v) * k);
+      } else {
+        const base = fill[z] ?? PARCHMENT;
+        let h = Math.imul(i, 73856093) ^ Math.imul(j, 19349663);
+        h = Math.imul(h ^ (h >>> 13), 1274126177);
+        const grain = 0.95 + 0.08 * (((h ^ (h >>> 16)) >>> 0) / 4294967296);
+        c = base.map((v) => v * grain);
+        const r = at(i + 1, j), d = at(i, j + 1);
+        if (!r || !d) c = c.map((v, n) => v * 0.2 + INK[n] * 0.8);
+        else if (fill[r] !== fill[z] || fill[d] !== fill[z]) c = c.map((v, n) => v * 0.35 + INK[n] * 0.3);
+      }
+      out.set(c.map((v) => Math.max(0, Math.min(255, Math.round(v)))), (j * tw + i) * 3);
+    }
+  return encode({ width: tw, height: th, data: out, depth: 8, channels: 3 });
 }
 
 const built = [];

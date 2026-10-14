@@ -6,7 +6,8 @@ export const LANGS = ['en', 'fr'];
 /** Historical macro-regions, keyed by a stable id. */
 export const REGIONS = {
   'england-wales': { en: 'England and Wales', fr: 'Angleterre et Galles' },
-  'scotland-ireland': { en: 'Scotland and Ireland', fr: 'Écosse et Irlande' },
+  scotland: { en: 'Scotland', fr: 'Écosse' },
+  ireland: { en: 'Ireland', fr: 'Irlande' },
   'northern-france': { en: 'Northern France', fr: 'France du Nord' },
   'southern-france': { en: 'Southern France', fr: 'France du Midi' },
   iberia: { en: 'Iberia', fr: 'Ibérie' },
@@ -71,10 +72,13 @@ const SAHARA_COUNTRIES = ['DZ', 'LY', 'EG', 'MA', 'TN', 'MR', 'EH', 'ML', 'NE', 
 export function historicRegion(iso, lon, lat, props = {}) {
   const name = props.name ?? '';
   const reg = props.region ?? '';
-  if (lat < 29.5 && SAHARA_COUNTRIES.includes(iso) && !(iso === 'EG' && Math.abs(lon - 31) < 2.5)) return 'sahara';
+  // Egypt: only the Western Desert is Saharan; the Nile valley and Sinai stay Egyptian
+  if (lat < 29.5 && SAHARA_COUNTRIES.includes(iso) && !(iso === 'EG' && lon > 29.5)) return 'sahara';
+  if (iso === 'RU' && name === 'Kaliningrad') return 'baltic';
   switch (iso) {
     case 'GB': case 'IE': case 'IM': case 'JE': case 'GG':
-      return iso === 'IE' || /Scotland|Northern Ireland/.test(props.geonunit ?? '') ? 'scotland-ireland' : 'england-wales';
+      if (iso === 'IE' || /Northern Ireland/.test(props.geonunit ?? '')) return 'ireland';
+      return /Scotland/.test(props.geonunit ?? '') ? 'scotland' : 'england-wales';
     case 'FR':
       return SOUTHERN_FRANCE.includes(reg) ? 'southern-france' : 'northern-france';
     case 'MC':

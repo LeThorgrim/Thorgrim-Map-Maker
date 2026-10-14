@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Editor } from './Editor';
 import { Home } from './Home';
+import { DialogHost } from './ui/Dialog';
 
 /** Minimal hash routing: `#/` = list of maps, `#/map/<id>[/<loadout>]` = editor. */
 function useRoute() {
@@ -18,5 +19,10 @@ function useRoute() {
 
 export default function App() {
   const route = useRoute();
-  return route.page === 'editor' ? <Editor key={route.mapId} mapId={route.mapId} start={route.start} /> : <Home />;
+  return (
+    <>
+      {route.page === 'editor' ? <Editor key={route.mapId} mapId={route.mapId} start={route.start} /> : <Home />}
+      <DialogHost />
+    </>
+  );
 }

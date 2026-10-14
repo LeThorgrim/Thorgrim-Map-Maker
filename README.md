@@ -17,7 +17,8 @@ The "Europe and the Mediterranean" map and its loadouts are already generated in
 
 ```bash
 npm run generate -- --id=europe --zones=5000 --seed=1337   # the map (~1 min, ~4 GB of RAM)
-npm run loadouts -- --id=europe                            # its loadouts (~20 s)
+npm run loadouts -- --id=europe                            # its loadouts and thumbnail (~20 s)
+npm run check-map -- --id=europe                           # checks that the hierarchy is continuous by land
 ```
 
 `generate` options: `--id` (folder and identifier of the map), `--name` and `--description`
@@ -66,6 +67,11 @@ browser. "Save" and "Open" use a `.mapmaker.json` file; "Export as PNG" renders 
    - area = administrative region (French région, German Land, Spanish community…), or a group of
      neighbouring provinces when the country has none;
    - region = historical macro-region (Iberia, Bohemia, Muscovy, Ifriqiya…), see `historicRegion()`.
+7. **Land continuity**: every province, area and region is made continuous by land
+   (`makeContiguous()`). A detached piece joins the neighbouring group of the same parent and,
+   preferably, the same country (East Tyrol, Vorarlberg, Kalmykia's western districts…). Islands
+   stay with their group across the sea, and so do pieces that only border another country
+   (Zeelandic Flanders, Ceuta). `npm run check-map` reports any remaining split.
 
 ## Loadouts
 
@@ -93,12 +99,23 @@ English file so a missing key fails to compile. Map data carries its names in ev
 a language: add a messages file and list it in `src/i18n/index.ts`, then add it to `LANGS` and to
 the labels in `generator/realdata.mjs` and the loadouts.
 
+## Art direction
+
+The interface borrows from grand strategy games: dark walnut panels framed in gold, parchment
+for documents (tooltips, the scenario list on the home screen), Roman capitals for titles
+(Cinzel), a calligraphic serif for place names (Alegreya) and Alegreya Sans for controls. Country
+swatches are heraldic shields. The map shader paints parchment land with a paper grain (its fine
+octaves fade out when zoomed out, to avoid speckle), a slate-teal sea with engraved shore lines,
+sepia coasts and an inner shading along country borders. The home thumbnail is rendered from the
+1444 loadout in the same colours. Design tokens are at the top of `src/index.css`.
+
 ## Architecture
 
 ```
 generator/
   generate.mjs      real data → locations → 2× rule → names → hierarchy → files
-  loadouts.mjs      loadouts of a generated map
+  loadouts.mjs      loadouts of a generated map, home thumbnail
+  check-continuity.mjs  report of provinces / areas / regions split by land
   loadouts/         rules of each loadout (1444, 1914, today) and their selector language
   realdata.mjs      historical regions, localized town and region names
   lib.mjs           projection, raster, connected components, distance transform, graph clustering

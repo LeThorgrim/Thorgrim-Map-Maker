@@ -6,6 +6,7 @@ import { download, openFile, saveToFile } from '../state/persist';
 import { startFrom } from '../state/scenarios';
 import { countryName, useStore, type Tool } from '../state/store';
 import { BackIcon, BrushIcon, CloseIcon, EraserIcon, PipetteIcon, PlusIcon, RedoIcon, UndoIcon } from './icons';
+import { confirmDialog } from './confirm';
 import { LanguageSwitch } from './LanguageSwitch';
 
 const TOOLS: { id: Tool; key: string; icon: () => React.JSX.Element }[] = [
@@ -60,7 +61,7 @@ export function Sidebar({ map, loadouts }: { map: MapData; loadouts: LoadoutInfo
   const choose = async (lo: LoadoutInfo | null) => {
     setLoading(lo?.id ?? 'blank');
     try {
-      await startFrom(map, lo, t.panel.confirmReplace, t.panel.blank);
+      await startFrom(map, lo, t);
     } catch (e) {
       setMessage(t.errors.scenarioFailed(e instanceof Error ? e.message : String(e)));
     } finally {
@@ -69,7 +70,7 @@ export function Sidebar({ map, loadouts }: { map: MapData; loadouts: LoadoutInfo
   };
 
   return (
-    <aside className="panel">
+    <aside className="panel frame">
       <header className="panel-head">
         <div className="panel-top">
           <a className="back" href="#/">
@@ -83,13 +84,13 @@ export function Sidebar({ map, loadouts }: { map: MapData; loadouts: LoadoutInfo
 
       {loadouts.length > 0 && (
         <section className="group">
-          <h2>{t.panel.startFrom}</h2>
+          <h2 className="rule-title">{t.panel.startFrom}</h2>
           <div className="scenarios">
-            <button onClick={() => choose(null)} disabled={loading !== null}>
+            <button className="btn" onClick={() => choose(null)} disabled={loading !== null}>
               {loading === 'blank' ? t.panel.loadingScenario : t.panel.blank}
             </button>
             {loadouts.map((lo) => (
-              <button key={lo.id} onClick={() => choose(lo)} disabled={loading !== null} title={pick(lo.description, lang)}>
+              <button key={lo.id} className="btn" onClick={() => choose(lo)} disabled={loading !== null} title={pick(lo.description, lang)}>
                 {loading === lo.id ? t.panel.loadingScenario : lo.id === 'today' ? pick(lo.name, lang) : lo.year}
               </button>
             ))}
@@ -98,7 +99,7 @@ export function Sidebar({ map, loadouts }: { map: MapData; loadouts: LoadoutInfo
       )}
 
       <section className="group">
-        <h2>{t.panel.tool}</h2>
+        <h2 className="rule-title">{t.panel.tool}</h2>
         <div className="seg seg-tools" role="radiogroup" aria-label={t.panel.tool}>
           {TOOLS.map((tl) => (
             <button
@@ -117,7 +118,7 @@ export function Sidebar({ map, loadouts }: { map: MapData; loadouts: LoadoutInfo
       </section>
 
       <section className="group">
-        <h2>{t.panel.scope}</h2>
+        <h2 className="rule-title">{t.panel.scope}</h2>
         <div className="seg" role="radiogroup" aria-label={t.panel.scope}>
           {LEVELS.map((l) => (
             <button
@@ -140,7 +141,7 @@ export function Sidebar({ map, loadouts }: { map: MapData; loadouts: LoadoutInfo
       </section>
 
       <section className="group countries">
-        <h2>
+        <h2 className="rule-title">
           {t.panel.countries} <span className="count">{countries.length}</span>
         </h2>
         {countries.length === 0 ? (
@@ -186,30 +187,31 @@ export function Sidebar({ map, loadouts }: { map: MapData; loadouts: LoadoutInfo
             })}
           </ul>
         )}
-        <button className="add" onClick={() => s.addCountry(t.panel.newCountryName(useStore.getState().nextId))}>
+        <button className="btn add" onClick={() => s.addCountry(t.panel.newCountryName(useStore.getState().nextId))}>
           <PlusIcon /> {t.panel.newCountry}
         </button>
       </section>
 
       <footer className="panel-foot">
         <div className="history">
-          <button onClick={() => s.undo()} disabled={!canUndo} title={t.panel.undo} aria-label={t.panel.undo}>
+          <button className="btn" onClick={() => s.undo()} disabled={!canUndo} title={t.panel.undo} aria-label={t.panel.undo}>
             <UndoIcon />
           </button>
-          <button onClick={() => s.redo()} disabled={!canRedo} title={t.panel.redo} aria-label={t.panel.redo}>
+          <button className="btn" onClick={() => s.redo()} disabled={!canRedo} title={t.panel.redo} aria-label={t.panel.redo}>
             <RedoIcon />
           </button>
         </div>
         <div className="files">
-          <button className="primary" onClick={exportImage} disabled={exporting}>
+          <button className="btn-banner" onClick={exportImage} disabled={exporting}>
             {exporting ? t.panel.exporting : t.panel.exportPng}
           </button>
-          <button onClick={saveToFile}>{t.panel.save}</button>
-          <button onClick={() => fileInput.current?.click()}>{t.panel.open}</button>
+          <button className="btn" onClick={saveToFile}>{t.panel.save}</button>
+          <button className="btn" onClick={() => fileInput.current?.click()}>{t.panel.open}</button>
           <button
             className="danger"
-            onClick={() => {
-              if (confirm(t.panel.confirmClear)) s.clearMap();
+            onClick={async () => {
+              const ok = await confirmDialog({ title: t.panel.clearTitle, message: t.panel.confirmClear, confirmLabel: t.panel.clear, danger: true });
+              if (ok) s.clearMap();
             }}
           >
             {t.panel.clear}
