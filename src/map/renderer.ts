@@ -33,6 +33,7 @@ uniform float uZoom;          // device pixels per map pixel
 uniform vec2 uView;           // view size in device pixels
 uniform float uZoneBorder;    // opacity of the borders between locations
 uniform float uPx;            // line width, in device pixels
+uniform bool uShowOverlays;
 out vec4 outColor;
 
 // Palette of an old campaign map: parchment land, sepia ink, slate-teal sea.
@@ -157,9 +158,11 @@ void main() {
     if (r != id || dn != id) c = mix(c, c * 0.7, uZoneBorder);                         // border between locations
   }
 
-  uint hv = hatchOf(id), ol = outlineOf(id);
-  if (hv != 0u) c = applyHatch(c, m, e, hv);
-  if (ol != 0u) c = applyOutline(c, m, e, ol);
+  if (uShowOverlays) {
+    uint hv = hatchOf(id), ol = outlineOf(id);
+    if (hv != 0u) c = applyHatch(c, m, e, hv);
+    if (ol != 0u) c = applyOutline(c, m, e, ol);
+  }
 
   if (texelFetch(uFlags, slot(id), 0).r == 1u) c = mix(c, HOVER, 0.35);
   outColor = vec4(c, 1.0);
@@ -187,6 +190,7 @@ export class MapRenderer {
   private flags: Uint8Array;
   private palette = new Uint8Array(256 * 256 * 4);
   private overlayPalette = new Uint8Array(256 * 256 * 4);
+  private display = { overlays: true, locationBorders: true };
   private map: MapData;
   private canvas: HTMLCanvasElement;
 
@@ -206,7 +210,7 @@ export class MapRenderer {
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog) ?? 'link');
     this.prog = prog;
     gl.useProgram(prog);
-    for (const name of ['uIds', 'uCoast', 'uOwner', 'uPalette', 'uFlags', 'uOutline', 'uHatch', 'uOverlays', 'uMapSize', 'uCenter', 'uZoom', 'uView', 'uZoneBorder', 'uPx'])
+    for (const name of ['uIds', 'uCoast', 'uOwner', 'uPalette', 'uFlags', 'uOutline', 'uHatch', 'uOverlays', 'uMapSize', 'uCenter', 'uZoom', 'uView', 'uZoneBorder', 'uPx', 'uShowOverlays'])
       this.u[name] = gl.getUniformLocation(prog, name);
 
     const buf = gl.createBuffer();
@@ -309,6 +313,11 @@ export class MapRenderer {
     gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 256, 256, gl.RGBA, gl.UNSIGNED_BYTE, this.overlayPalette);
   }
 
+  /** What to show: overlays, and the borders between the locations of a country. */
+  setDisplay(d: { overlays: boolean; locationBorders: boolean }) {
+    this.display = { overlays: d.overlays, locationBorders: d.locationBorders };
+  }
+
   /** Highlights a set of locations (hover). */
   setHighlight(zones: number[]) {
     this.flags.fill(0);
@@ -332,7 +341,9 @@ export class MapRenderer {
     gl.uniform2f(this.u.uView, w, h);
     gl.uniform1f(this.u.uPx, px);
     // borders between locations fade in as you zoom in
-    gl.uniform1f(this.u.uZoneBorder, Math.min(1, Math.max(0, (zoom / px - 0.22) / 0.5)));
+    const fade = Math.min(1, Math.max(0, (zoom / px - 0.22) / 0.5));
+    gl.uniform1f(this.u.uZoneBorder, this.display.locationBorders ? fade : 0);
+    gl.uniform1i(this.u.uShowOverlays, this.display.overlays ? 1 : 0);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
 
@@ -341,8 +352,8 @@ export class MapRenderer {
     this.drawPass(cam.x, cam.y, cam.zoom * dpr, this.canvas.width, this.canvas.height, Math.max(1, Math.round(dpr)));
   }
 
-  /** Renders the whole map at its native resolution and returns it as a PNG. */
-  async exportPng(): Promise<Blob> {
+  /** Renders the whole map at its native resolution, on a 2D canvas the caller can draw on. */
+  renderFull(): HTMLCanvasElement {
     const gl = this.gl;
     const { width: w, height: h } = this.map;
     const saved = this.flags.slice();
@@ -372,7 +383,7 @@ export class MapRenderer {
     c.width = w;
     c.height = h;
     c.getContext('2d')!.putImageData(img, 0, 0);
-    return new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('PNG export failed'))), 'image/png'));
+    return c;
   }
 
   dispose() {

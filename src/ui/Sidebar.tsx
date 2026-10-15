@@ -1,7 +1,10 @@
 import { useRef, useState } from 'react';
 import { pick, useLang, useT } from '../i18n';
 import type { Level, LoadoutInfo, MapData } from '../map/loadMap';
+import { drawLabels, LABEL_FONT } from '../map/labels';
+import { drawLegend, legendEntries } from '../map/legend';
 import { view } from '../map/view';
+import { useSettings } from '../state/settings';
 import { download, openFile, saveToFile } from '../state/persist';
 import { startFrom } from '../state/scenarios';
 import { useStore, type Tool } from '../state/store';
@@ -36,11 +39,25 @@ export function Sidebar({ map, loadouts }: { map: MapData; loadouts: LoadoutInfo
   const [exporting, setExporting] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
 
+  // The export shows the map as displayed: names and legend follow the display settings.
   const exportImage = async () => {
     if (!view.renderer) return;
     setExporting(true);
     try {
-      download(await view.renderer.exportPng(), `${map.id}.png`);
+      await document.fonts?.load(`700 40px ${LABEL_FONT}`).catch(() => {});
+      const canvas = view.renderer.renderFull();
+      const ctx = canvas.getContext('2d')!;
+      const display = useSettings.getState();
+      const named = view.labels?.();
+      if (display.names && named) drawLabels(ctx, named.labels, named.countryOf, { scale: 1, originX: 0, originY: 0, minSize: 11 });
+      if (display.legend) {
+        const st = useStore.getState();
+        const entries = legendEntries(st.countries, st.overlays, st.owner, st.outline, st.hatch, map.count, lang);
+        const u = canvas.width / 1600; // one CSS pixel of a 1600 px wide screen
+        drawLegend(ctx, entries, { title: t.legend.title, more: t.legend.more }, 24 * u, canvas.height - 24 * u, u);
+      }
+      const blob = await new Promise<Blob>((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('PNG'))), 'image/png'));
+      download(blob, `${map.id}.png`);
     } catch {
       setMessage(t.errors.exportFailed);
     } finally {

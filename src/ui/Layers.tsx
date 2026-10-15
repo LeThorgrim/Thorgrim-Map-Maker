@@ -1,8 +1,9 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useLang, useT } from '../i18n';
 import { countryName, useStore, type OverlayStyle } from '../state/store';
+import { useSettings } from '../state/settings';
 import { confirmDialog } from './confirm';
-import { ChevronIcon, CloseIcon, HatchIcon, OutlineIcon, PlusIcon } from './icons';
+import { ChevronIcon, CloseIcon, HatchIcon, NameIcon, OutlineIcon, PlusIcon } from './icons';
 
 const OPEN_KEY = 'mapmaker:open-sections';
 
@@ -64,6 +65,7 @@ export function CountrySection() {
   const activeId = useStore((s) => s.activeId);
   const layer = useStore((s) => s.layer);
   const counts = useCounts('country');
+  const namesOn = useSettings((st) => st.names);
   const s = useStore.getState();
 
   return (
@@ -93,6 +95,21 @@ export function CountrySection() {
                   onChange={(e) => s.renameCountry(c.id, e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
                 />
+                <span className={namesOn ? 'style-switch name-switch' : 'style-switch name-switch muted'}>
+                  <button
+                    role="switch"
+                    aria-checked={!c.hideName}
+                    className={c.hideName ? '' : 'on'}
+                    title={namesOn ? t.panel.showName : `${t.panel.showName} — ${t.panel.namesOff}`}
+                    aria-label={t.panel.showName}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      s.toggleCountryName(c.id);
+                    }}
+                  >
+                    <NameIcon />
+                  </button>
+                </span>
                 <span className="n" title={t.panel.owned}>
                   {counts.get(c.id) ?? 0}
                 </span>

@@ -31,6 +31,8 @@ export interface Country {
   color: string;
   /** Names from a loadout, in every language; dropped as soon as the user renames the country. */
   label?: Localized;
+  /** The name is not written on the map (the country stays in the legend). */
+  hideName?: boolean;
 }
 
 export interface Overlay {
@@ -144,6 +146,8 @@ interface State {
   addCountry(name: string): void;
   renameCountry(id: number, name: string): void;
   recolorCountry(id: number, color: string): void;
+  /** Shows or hides the country's name on the map. */
+  toggleCountryName(id: number): void;
   deleteCountry(id: number): void;
 
   addOverlay(name: string): void;
@@ -347,7 +351,19 @@ export const useStore = create<State>()((set, get) => {
       set({ countries: [...countries, { id: nextId, name, color }], nextId: nextId + 1, activeId: nextId, layer: 'country', tool: 'paint' });
     },
     renameCountry: (id, name) =>
-      set({ countries: get().countries.map((c) => (c.id === id ? { id: c.id, color: c.color, name } : c)) }),
+      set({
+        countries: get().countries.map((c) =>
+          c.id === id ? { id: c.id, color: c.color, name, ...(c.hideName ? { hideName: true } : {}) } : c,
+        ),
+      }),
+    toggleCountryName: (id) =>
+      set({
+        countries: get().countries.map((c) => {
+          if (c.id !== id) return c;
+          const { hideName, ...rest } = c;
+          return hideName ? rest : { ...rest, hideName: true };
+        }),
+      }),
     recolorCountry: (id, color) => set({ countries: get().countries.map((c) => (c.id === id ? { ...c, color } : c)) }),
     deleteCountry: (id) => {
       const { countries, activeId, revision } = get();

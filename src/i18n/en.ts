@@ -61,6 +61,8 @@ export const en = {
     changeColor: 'Change colour',
     countryName: 'Country name',
     owned: 'Locations owned',
+    showName: 'Write the name on the map',
+    namesOff: 'names are turned off in the display menu',
     remove: (name: string) => `Delete ${name}`,
     undo: 'Undo (Ctrl+Z)',
     redo: 'Redo (Ctrl+Y)',
@@ -77,6 +79,20 @@ export const en = {
 
   dialog: {
     cancel: 'Cancel',
+  },
+
+  legend: {
+    title: 'Legend',
+    more: (n: number) => `and ${n} more ${n === 1 ? 'country' : 'countries'}`,
+  },
+
+  display: {
+    title: 'Display',
+    names: 'Country names',
+    legend: 'Legend',
+    overlays: 'Overlays',
+    locationBorders: 'Location borders',
+    exportNote: 'The PNG export shows the map as displayed here.',
   },
 
   errors: {

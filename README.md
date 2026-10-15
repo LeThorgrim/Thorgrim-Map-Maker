@@ -56,6 +56,19 @@ country or an overlay in the side panel decides what the tools work on:
 
 Both sections of the panel fold away.
 
+**Names, legend and display.** Country names are written on the map, EU style: on the main
+piece of each country (the one with the most locations, so France is named in France rather than
+in Algeria), at its most interior point (the pole of inaccessibility, from a distance transform),
+along its main axis and sized to fit. Other large pieces get their own name. Placements are
+recomputed shortly after painting stops (`src/map/labels.ts`); names that grow too large when
+zooming in fade out. When a full name does not fit, a shorter form is tried: initials for a name
+of several words ("Holy Roman Empire" → "HRE", small words such as "of" or "de" left out), a cut
+word for a single word ("Castile" → "CAST.", then "CAS."). The "A" switch next to each country
+hides its name on the map (and in the export); it only applies while names are turned on in the
+display menu. The legend lists the painted countries, largest first, and the overlays in
+use. The eye button (top right) shows or hides country names, the legend, overlays and the
+borders between locations; the PNG export follows the same settings.
+
 Maps start blank. "Start from" replaces the current map with a loadout (undoable with `Ctrl+Z`);
 the home screen also links straight to each loadout. Each map is saved automatically in the
 browser. "Save" and "Open" use a `.mapmaker.json` file; "Export as PNG" renders the whole map
@@ -182,6 +195,5 @@ The Caspian Sea and lakes Ladoga and Onega are added by hand in `generate.mjs` (
 
 ## Next steps
 
-- Legend and country names drawn on the map (text at the most interior point of each country).
 - Vector SVG export: vectorize `ids.png` in the generator (outlines merged per country).
 - Share links (state compressed in the URL), then a Spring Boot API for short links.

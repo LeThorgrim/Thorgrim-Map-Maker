@@ -1,5 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { useStore } from '../state/store';
+import { useLang } from '../i18n';
+import { useSettings } from '../state/settings';
+import { countryName, useStore } from '../state/store';
+import { computeLabels, drawLabels, LABEL_FONT, type Label } from './labels';
 import { zonesOf, type Level, type MapData } from './loadMap';
 import { MapRenderer, type Camera } from './renderer';
 import { view } from './view';
@@ -22,20 +25,57 @@ function levelFor(e: Mods, base: Level): Level {
 
 export function MapCanvas({ map }: { map: MapData }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const labelRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
+    const labelCanvas = labelRef.current!;
+    const lctx = labelCanvas.getContext('2d')!;
     const r = new MapRenderer(canvas, map);
     view.renderer = r;
+    r.setDisplay(useSettings.getState());
     const cam: Camera = { x: map.width / 2, y: map.height / 2, zoom: 0.25 };
+
+    // ---------------------------------------------------------- country names
+    // Placements are recomputed shortly after painting stops; names and colours are read at
+    // drawing time, so renaming a country or switching language costs nothing.
+    let labels: Label[] = [];
+    let labelTimer = 0;
+    const refreshLabels = (delay: number) => {
+      clearTimeout(labelTimer);
+      labelTimer = window.setTimeout(() => {
+        labels = computeLabels(map, useStore.getState().owner);
+        request();
+      }, delay);
+    };
+    const countryOf = (id: number) => {
+      const c = useStore.getState().countries.find((x) => x.id === id);
+      // a country whose name is hidden is skipped, on screen and in the export
+      return c && !c.hideName ? { name: countryName(c, useLang.getState().lang), color: c.color } : undefined;
+    };
+    view.labels = () => ({ labels, countryOf });
+    const drawNames = () => {
+      const dpr = canvas.width / Math.max(1, canvas.clientWidth);
+      lctx.setTransform(1, 0, 0, 1, 0, 0);
+      lctx.clearRect(0, 0, labelCanvas.width, labelCanvas.height);
+      if (!useSettings.getState().names) return;
+      lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      drawLabels(lctx, labels, countryOf, { scale: cam.zoom, originX: cam.x - w / 2 / cam.zoom, originY: cam.y - h / 2 / cam.zoom, minSize: 9, fadeFrom: 64 });
+    };
+
     let raf = 0;
     const request = () => {
       if (!raf)
         raf = requestAnimationFrame(() => {
           raf = 0;
           r.draw(cam);
+          drawNames();
         });
     };
+    refreshLabels(0);
+    // redraw once the title font has loaded (names are measured with it)
+    document.fonts?.load(`700 20px ${LABEL_FONT}`).then(request, () => {});
 
     const minZoom = () => Math.min(canvas.clientWidth / map.width, canvas.clientHeight / map.height) * 0.6;
     const clamp = () => {
@@ -60,8 +100,8 @@ export function MapCanvas({ map }: { map: MapData }) {
     let fitted = false;
     const ro = new ResizeObserver(() => {
       const dpr = window.devicePixelRatio || 1;
-      canvas.width = Math.round(canvas.clientWidth * dpr);
-      canvas.height = Math.round(canvas.clientHeight * dpr);
+      canvas.width = labelCanvas.width = Math.round(canvas.clientWidth * dpr);
+      canvas.height = labelCanvas.height = Math.round(canvas.clientHeight * dpr);
       if (!fitted) {
         fit();
         fitted = true;
@@ -92,12 +132,18 @@ export function MapCanvas({ map }: { map: MapData }) {
       if (s.revision !== p.revision) {
         r.setOwners(s.owner);
         r.setMarks(s.outline, s.hatch);
+        refreshLabels(250);
       }
       if (s.countries !== p.countries) r.setPalette(s.countries);
       if (s.overlays !== p.overlays) r.setOverlays(s.overlays);
       if (s.hover !== p.hover || s.level !== p.level || s.tool !== p.tool) updateHighlight();
       request();
     });
+    const unsubSettings = useSettings.subscribe((s) => {
+      r.setDisplay(s);
+      request();
+    });
+    const unsubLang = useLang.subscribe(request);
 
     // ---------------------------------------------------------- mouse
     const toMap = (e: { clientX: number; clientY: number }) => {
@@ -231,6 +277,10 @@ export function MapCanvas({ map }: { map: MapData }) {
     return () => {
       ro.disconnect();
       unsub();
+      unsubSettings();
+      unsubLang();
+      clearTimeout(labelTimer);
+      view.labels = null;
       cancelAnimationFrame(raf);
       ac.abort();
       r.dispose();
@@ -238,5 +288,10 @@ export function MapCanvas({ map }: { map: MapData }) {
     };
   }, [map]);
 
-  return <canvas ref={canvasRef} className="map-canvas" />;
+  return (
+    <>
+      <canvas ref={canvasRef} className="map-canvas" />
+      <canvas ref={labelRef} className="label-canvas" aria-hidden />
+    </>
+  );
 }

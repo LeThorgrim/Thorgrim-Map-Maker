@@ -62,6 +62,8 @@ export const fr: Messages = {
     changeColor: 'Changer la couleur',
     countryName: 'Nom du pays',
     owned: 'Locations possédées',
+    showName: 'Écrire le nom sur la carte',
+    namesOff: 'les noms sont désactivés dans le menu d’affichage',
     remove: (name) => `Supprimer ${name}`,
     undo: 'Annuler (Ctrl+Z)',
     redo: 'Rétablir (Ctrl+Y)',
@@ -78,6 +80,20 @@ export const fr: Messages = {
 
   dialog: {
     cancel: 'Annuler',
+  },
+
+  legend: {
+    title: 'Légende',
+    more: (n) => `et ${n} autre${n === 1 ? '' : 's'} pays`,
+  },
+
+  display: {
+    title: 'Affichage',
+    names: 'Noms des pays',
+    legend: 'Légende',
+    overlays: 'Calques',
+    locationBorders: 'Limites des locations',
+    exportNote: 'L’export PNG reprend la carte telle qu’affichée ici.',
   },
 
   errors: {

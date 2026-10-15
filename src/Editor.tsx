@@ -8,6 +8,8 @@ import { startFrom } from './state/scenarios';
 import { useStore } from './state/store';
 import { HoverCard } from './ui/HoverCard';
 import { FitIcon, MinusIcon, PlusIcon } from './ui/icons';
+import { DisplayMenu } from './ui/DisplayMenu';
+import { Legend } from './ui/Legend';
 import { Sidebar } from './ui/Sidebar';
 
 /** The map editor. `start` is the id of a loadout to load right away (from the home screen). */
@@ -115,7 +117,9 @@ export function Editor({ mapId, start }: { mapId: string; start?: string }) {
         <button className="btn" onClick={() => view.fit()} title={t.editor.fit} aria-label={t.editor.fit}>
           <FitIcon />
         </button>
+        <DisplayMenu />
       </div>
+      <Legend />
       <HoverCard map={map} />
       <p className="attribution">{map.attribution}</p>
     </main>

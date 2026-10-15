@@ -75,3 +75,15 @@ export const HatchIcon = () => (
     <path d="M4 12 12 4M4 20 20 4M12 20l8-8" />
   </svg>
 );
+/** A capital letter: the country name written on the map. */
+export const NameIcon = () => (
+  <svg {...base} width={14} height={14} strokeWidth={2} aria-hidden>
+    <path d="M5 20 12 4l7 16M8 14h8" />
+  </svg>
+);
+export const EyeIcon = () => (
+  <svg {...base} aria-hidden>
+    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
