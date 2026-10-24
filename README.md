@@ -84,19 +84,24 @@ browser. "Save" and "Open" use a `.mapmaker.json` file; "Export as PNG" renders 
    varying density (small in the heart of Europe, large in the far north, the steppes and deserts).
 4. **The 2× rule** (as in EU): no location may be more than twice the size of any of its land
    neighbours. The generator merges locations that are too small and cuts those that are too large.
-   On the bundled map 99.4 % of neighbouring pairs follow the rule; the 83 exceptions are mostly in
+   On the bundled map 99.4 % of neighbouring pairs follow the rule; the exceptions are mostly in
    deserts, between units of very different sizes.
-5. **Names**: each location takes the name of the largest real town it contains (GeoNames, package
+5. **One piece per location**: a location never has an exclave. Apart from islands (pieces
+   surrounded by sea), a detached piece joins the neighbouring location it shares most border with,
+   or becomes a location of its own when it is large enough. Archipelagos listed in
+   `ISLAND_PROVINCES` (`realdata.mjs`, e.g. the Balearic Islands) give each main island its own
+   location and province; nearby islets join the closest island.
+6. **Names**: each location takes the name of the largest real town it contains (GeoNames, package
    `all-the-cities`), with English and French exonyms and some historical names (`realdata.mjs`:
    Constantinople, Königsberg, Danzig…). Locations without a town get a landscape name
    ("Siwa Desert").
-6. **Hierarchy**:
+7. **Hierarchy**:
    - province = present-day administrative unit; a large unit (≥ 12 locations, e.g. Bavaria)
      becomes an area split into provinces named after their main town;
    - area = administrative region (French région, German Land, Spanish community…), or a group of
      neighbouring provinces when the country has none;
    - region = historical macro-region (Iberia, Bohemia, Muscovy, Ifriqiya…), see `historicRegion()`.
-7. **Land continuity**: every province, area and region is made continuous by land
+8. **Land continuity**: every province, area and region is made continuous by land
    (`makeContiguous()`). A detached piece joins the neighbouring group of the same parent and,
    preferably, the same country (East Tyrol, Vorarlberg, Kalmykia's western districts…). Islands
    stay with their group across the sea, and so do pieces that only border another country
@@ -191,9 +196,12 @@ recolouring a country recolours all its lands without touching `owner`. The hist
 - Historical borders (1444 base and 1914 loadouts): historical-basemaps by A. Ourednik, GPL-3.0.
   Check that licence before publishing the generated loadouts.
 
-The Caspian Sea and lakes Ladoga and Onega are added by hand in `generate.mjs` (`LAKES`).
+The Caspian Sea and lakes Ladoga and Onega are added by hand in `generate.mjs` (`LAKES`). Their
+outlines matter: Ladoga must leave the Karelian Isthmus as land, or Saint Petersburg ends up cut off
+from the rest of Russia.
 
 ## Next steps
 
+- Legend movable on the mab, scaleable and customiz.
 - Vector SVG export: vectorize `ids.png` in the generator (outlines merged per country).
 - Share links (state compressed in the URL), then a Spring Boot API for short links.

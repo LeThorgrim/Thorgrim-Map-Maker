@@ -287,3 +287,17 @@ export function regionLabel(iso, reg) {
   const n = reg.replace(/ Economic Region$| Autonomous Republic$/, '');
   return { en: n, fr: n };
 }
+
+/**
+ * Archipelagos whose main islands each form their own province (and get at least one location
+ * of their own, however small). Each island is given by a point on it; nearby islets without a
+ * location (Formentera, Cabrera) join the closest island. The administrative unit is the one
+ * under the first point.
+ */
+export const ISLAND_PROVINCES = [
+  [
+    { at: [2.95, 39.62], name: { en: 'Majorca', fr: 'Majorque' } },
+    { at: [4.08, 39.97], name: { en: 'Minorca', fr: 'Minorque' } },
+    { at: [1.43, 38.98], name: { en: 'Ibiza', fr: 'Ibiza' } },
+  ],
+];

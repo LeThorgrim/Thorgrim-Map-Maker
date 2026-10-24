@@ -21,7 +21,7 @@ import { createRequire } from 'node:module';
 import { createNoise2D } from 'simplex-noise';
 import { encode } from 'fast-png';
 import { FRAME, connectGraph, edt, graphKMeans, labelComponents, makeProjection, mulberry32, polygonsOf, scanRings } from './lib.mjs';
-import { LANDSCAPE, LANGS, REGIONS, TOWN_CODES, historicRegion, regionLabel, townLabel } from './realdata.mjs';
+import { ISLAND_PROVINCES, LANDSCAPE, LANGS, REGIONS, TOWN_CODES, historicRegion, regionLabel, townLabel } from './realdata.mjs';
 
 const require = createRequire(import.meta.url);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -99,8 +99,10 @@ function loadCoastline() {
 // Large inland waters missing from the coastline data.
 const LAKES = [
   [[46.7, 44.5], [47.5, 45.6], [49.2, 46.4], [51.3, 47.0], [53.0, 46.8], [53.2, 45.3], [51.3, 44.5], [50.3, 44.3], [51.2, 43.2], [52.8, 41.8], [53.0, 40.6], [52.8, 39.3], [53.9, 37.3], [51.9, 36.6], [50.0, 37.3], [49.0, 38.4], [49.5, 40.2], [50.4, 40.4], [49.0, 41.2], [48.0, 42.4], [47.5, 43.1], [46.7, 44.5]],
-  [[29.9, 60.0], [31.0, 59.95], [32.6, 60.5], [32.9, 61.2], [31.5, 61.6], [30.2, 61.3], [29.4, 60.6], [29.9, 60.0]],
-  [[34.7, 60.9], [36.2, 61.2], [36.0, 62.0], [35.3, 62.9], [34.4, 62.5], [34.6, 61.6], [34.7, 60.9]],
+  // Ladoga: the Karelian Isthmus, between it and the Gulf of Finland, must stay land
+  [[31.03, 59.96], [31.35, 60.0], [31.8, 60.05], [32.3, 60.12], [32.6, 60.27], [32.85, 60.48], [32.95, 60.66], [32.85, 60.87], [32.62, 61.06], [32.32, 61.21], [31.85, 61.38], [31.45, 61.55], [31.0, 61.68], [30.68, 61.73], [30.35, 61.62], [30.15, 61.45], [30.05, 61.2], [30.15, 61.02], [30.45, 60.8], [30.75, 60.55], [30.95, 60.3], [31.05, 60.12], [31.03, 59.96]],
+  // Onega
+  [[35.45, 61.03], [35.85, 61.06], [36.2, 61.17], [36.35, 61.4], [36.15, 61.75], [35.95, 62.1], [35.65, 62.5], [35.25, 62.82], [34.85, 62.88], [34.5, 62.8], [34.6, 62.5], [34.3, 62.25], [34.45, 61.95], [34.42, 61.78], [34.65, 61.52], [35.0, 61.25], [35.3, 61.1], [35.45, 61.03]],
 ];
 
 const proj = (ring) => ring.map((pt) => projection(pt));
@@ -415,6 +417,30 @@ const piece = new Int32Array(N);
     }
   }
 }
+// The main islands of ISLAND_PROVINCES always get a location of their own.
+/** Pixel of land closest to a point (within a few pixels), or -1. */
+function landPixel([lon, lat]) {
+  const [x0, y0] = projection([lon, lat]).map(Math.round);
+  let best = -1, bd = Infinity;
+  for (let dy = -8; dy <= 8; dy++)
+    for (let dx = -8; dx <= 8; dx++) {
+      const x = x0 + dx, y = y0 + dy;
+      if (x < 0 || x >= W || y < 0 || y >= H || unitOf[y * W + x] < 0) continue;
+      if (dx * dx + dy * dy < bd) (bd = dx * dx + dy * dy), (best = y * W + x);
+    }
+  return best;
+}
+for (const group of ISLAND_PROVINCES)
+  for (const island of group) {
+    const p = landPixel(island.at);
+    if (p < 0) throw new Error(`No land at ${island.at}`);
+    island.pixel = p;
+    if (!seedX.some((x, s) => piece[seedY[s] * W + x] === piece[p])) {
+      seedX.push(p % W);
+      seedY.push((p / W) | 0);
+      seedUnit.push(unitOf[p]);
+    }
+  }
 log(`${seedX.length} seeds`);
 
 // Noise-warped Voronoi, propagated pixel by pixel inside each unit.
@@ -629,6 +655,63 @@ for (let round = 0; round < 40; round++) {
 }
 log(`2× rule: ${violations} neighbouring pair(s) still outside the rule`);
 
+// Every location must be continuous: apart from islands (pieces surrounded by sea), a location
+// has a single piece. A detached piece that touches other locations joins the one it shares most
+// border with, whatever its unit, or becomes a location of its own when it is large enough.
+function fixExclaves() {
+  const cc = new Int32Array(N);
+  const { sizes, first } = comps((a, b) => cell[a] >= 0 && cell[a] === cell[b], cc);
+  const ccCell = sizes.map((_, c) => cell[first[c]]);
+  const main = new Map();
+  for (let c = 0; c < sizes.length; c++) {
+    const m = main.get(ccCell[c]);
+    if (m === undefined || sizes[c] > sizes[m]) main.set(ccCell[c], c);
+  }
+  // detached piece → (neighbouring piece → border length); joining the main piece of a neighbour
+  // (rather than another detached piece) keeps two pieces from swapping locations forever
+  const borders = new Map();
+  const tally = (a, b) => {
+    if (cell[b] < 0 || cell[b] === cell[a] || main.get(cell[a]) === cc[a]) return;
+    let m = borders.get(cc[a]);
+    if (!m) borders.set(cc[a], (m = new Map()));
+    m.set(cc[b], (m.get(cc[b]) ?? 0) + 1);
+  };
+  for (let p = 0; p < N; p++) {
+    if (cc[p] < 0) continue;
+    if (p % W < W - 1 && cc[p + 1] >= 0) tally(p, p + 1), tally(p + 1, p);
+    if (p + W < N && cc[p + W] >= 0) tally(p, p + W), tally(p + W, p);
+  }
+  const target = new Map();
+  for (const [c, m] of borders) {
+    const p = first[c];
+    if (sizes[c] >= 0.45 * targetAt(p % W, (p / W) | 0)) {
+      // large enough to stand alone
+      target.set(c, cellX.length);
+      cellX = Float64Array.from([...cellX, p % W]);
+      cellY = Float64Array.from([...cellY, (p / W) | 0]);
+      cellUnit.push(cellUnit[ccCell[c]]);
+      continue;
+    }
+    let best = -1, bl = -1, mainOnly = false;
+    for (const [o, l] of m) {
+      const isMain = main.get(ccCell[o]) === o;
+      if ((isMain && !mainOnly) || ((isMain || !mainOnly) && l > bl)) (bl = l), (best = ccCell[o]), (mainOnly ||= isMain);
+    }
+    // two detached pieces that only touch each other (islets): only one of them moves
+    if (mainOnly || best < ccCell[c]) target.set(c, best);
+  }
+  for (let p = 0; p < N; p++) {
+    const t = cc[p] >= 0 ? target.get(cc[p]) : undefined;
+    if (t !== undefined) (cell[p] = t), (unitOf[p] = cellUnit[t]);
+  }
+  return target.size;
+}
+{
+  let fixed = 0;
+  for (let i = 0, n; i < 10 && (n = fixExclaves()) > 0; i++) fixed += n;
+  log(`Continuity of locations: ${fixed} detached piece(s) merged or made into locations`);
+}
+
 // Renumbering: 0 = sea, 1..n = locations, in reading order.
 const remap = new Int32Array(cellX.length).fill(-1);
 let NZ = 1;
@@ -817,6 +900,22 @@ const bigUnits = new Set();
 for (let u = 0; u < U; u++) {
   const zs = unitZones[u];
   if (!zs.length) continue;
+  const islands = ISLAND_PROVINCES.find((g) => unitOf[g[0].pixel] === u);
+  if (islands) {
+    // one province per island, each location going to the closest island
+    const base = provinces.length;
+    islands.forEach((isl) => provinces.push({ name: isl.name, unit: u, zones: [] }));
+    for (const z of zs) {
+      let best = 0, bd = Infinity;
+      islands.forEach((isl, i) => {
+        const d = (isl.pixel % W - st.cx[z]) ** 2 + (((isl.pixel / W) | 0) - st.cy[z]) ** 2;
+        if (d < bd) (bd = d), (best = i);
+      });
+      provOf[z] = base + best;
+      provinces[base + best].zones.push(z);
+    }
+    continue;
+  }
   if (zs.length < BIG) {
     zs.forEach((z) => (provOf[z] = provinces.length));
     provinces.push({ name: units[u].name, unit: u, zones: zs });
