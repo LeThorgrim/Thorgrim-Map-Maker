@@ -1,4 +1,4 @@
-# Map maker
+# Thorgim Map Maker
 
 A map editor in the spirit of Europa Universalis: pick a map, create countries and paint their
 borders location by location — or start from a historical loadout (1444, 1914, today).

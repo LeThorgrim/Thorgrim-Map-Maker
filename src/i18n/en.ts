@@ -1,6 +1,6 @@
 /** English messages. Every other language must provide the same keys (see `Messages`). */
 export const en = {
-  appName: 'Map maker',
+  appName: 'Thorgim Map Maker',
   languageName: 'English',
 
   home: {

@@ -1,7 +1,7 @@
 import type { Messages } from './en';
 
 export const fr: Messages = {
-  appName: 'Map maker',
+  appName: 'Thorgim Map Maker',
   languageName: 'Français',
 
   home: {
