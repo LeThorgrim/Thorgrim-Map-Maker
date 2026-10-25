@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { pick, useLang, useT } from '../i18n';
 import type { Level, LoadoutInfo, MapData } from '../map/loadMap';
 import { drawLabels, LABEL_FONT } from '../map/labels';
-import { drawLegend, legendEntries } from '../map/legend';
+import { drawLegend, isEmpty, legendEntries, legendPlacement, legendUnit } from '../map/legend';
 import { view } from '../map/view';
 import { useSettings } from '../state/settings';
 import { download, openFile, saveToFile } from '../state/persist';
@@ -53,8 +53,17 @@ export function Sidebar({ map, loadouts }: { map: MapData; loadouts: LoadoutInfo
       if (display.legend) {
         const st = useStore.getState();
         const entries = legendEntries(st.countries, st.overlays, st.owner, st.outline, st.hatch, map.count, lang);
-        const u = canvas.width / 1600; // one CSS pixel of a 1600 px wide screen
-        drawLegend(ctx, entries, { title: t.legend.title, more: t.legend.more }, 24 * u, canvas.height - 24 * u, u);
+        if (!isEmpty(entries)) {
+          // the legend is placed in map pixels: same place and size as on screen
+          const k = canvas.width / map.width;
+          ctx.setTransform(k, 0, 0, k, 0, 0);
+          const place = legendPlacement(st.legend, map.width, map.height);
+          drawLegend(ctx, entries, { title: t.legend.title, more: t.legend.more }, place, legendUnit(map.width), k, {
+          scale: useSettings.getState().legendScale,
+          columnGap: useSettings.getState().legendColumnGap,
+          bounds: { w: map.width, h: map.height },
+        });
+        }
       }
       const blob = await new Promise<Blob>((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('PNG'))), 'image/png'));
       download(blob, `${map.id}.png`);

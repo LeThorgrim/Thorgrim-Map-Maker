@@ -65,8 +65,17 @@ zooming in fade out. When a full name does not fit, a shorter form is tried: ini
 of several words ("Holy Roman Empire" → "HRE", small words such as "of" or "de" left out), a cut
 word for a single word ("Castile" → "CAST.", then "CAS."). The "A" switch next to each country
 hides its name on the map (and in the export); it only applies while names are turned on in the
-display menu. The legend lists the painted countries, largest first, and the overlays in
-use. The eye button (top right) shows or hides country names, the legend, overlays and the
+display menu.
+
+The legend is part of the map (`src/map/legend.ts`): it is placed in map pixels, so it moves and
+zooms with the map and appears at the same place and size in the export. Drag it to move it, drag
+its edges or corners to resize it, double-click it to put it back at the bottom left. It lists the
+painted countries and the overlays in use, each by number of locations, largest first; it keeps the
+height of its content (14 countries per column at most) until it is resized vertically, then shows the rows
+that fit and sums up the countries left out. A wide enough legend lays its entries out in several
+columns, filled top to bottom. The display menu sets the size of its text and the spacing between
+its columns (screen and export alike); a legend growing with its content never leaves the map. The list switch next to each country and each overlay
+leaves it out of the legend. Its position is saved with the map. The eye button (top right) shows or hides country names, the legend, overlays and the
 borders between locations; the PNG export follows the same settings.
 
 Maps start blank. "Start from" replaces the current map with a loadout (undoable with `Ctrl+Z`);
@@ -202,6 +211,5 @@ from the rest of Russia.
 
 ## Next steps
 
-- Legend movable on the mab, scaleable and customiz.
 - Vector SVG export: vectorize `ids.png` in the generator (outlines merged per country).
 - Share links (state compressed in the URL), then a Spring Boot API for short links.

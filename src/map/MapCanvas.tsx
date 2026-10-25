@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { useLang } from '../i18n';
+import { MESSAGES, useLang } from '../i18n';
 import { useSettings } from '../state/settings';
 import { countryName, useStore } from '../state/store';
 import { computeLabels, drawLabels, LABEL_FONT, type Label } from './labels';
+import { drawLegend, isEmpty, legendEntries, legendPlacement, legendUnit, type LegendEntries } from './legend';
 import { zonesOf, type Level, type MapData } from './loadMap';
 import { MapRenderer, type Camera } from './renderer';
 import { view } from './view';
@@ -54,14 +55,59 @@ export function MapCanvas({ map }: { map: MapData }) {
       return c && !c.hideName ? { name: countryName(c, useLang.getState().lang), color: c.color } : undefined;
     };
     view.labels = () => ({ labels, countryOf });
-    const drawNames = () => {
+    // ---------------------------------------------------------- legend
+    // The legend belongs to the map: it is placed in map pixels, moves and zooms with the map and
+    // appears at the same place in the export. An element laid over it (LegendHandle) moves and
+    // resizes it.
+    let entries: LegendEntries | null = null;
+    let entriesKey: unknown[] = [];
+    const currentEntries = () => {
+      const s = useStore.getState(), lang = useLang.getState().lang;
+      const key = [s.revision, s.countries, s.overlays, lang];
+      if (!entries || key.some((k, i) => k !== entriesKey[i])) {
+        entries = legendEntries(s.countries, s.overlays, s.owner, s.outline, s.hatch, map.count, lang);
+        entriesKey = key;
+      }
+      return entries;
+    };
+    const placeHandle = () => {
+      const el = view.legendEl;
+      if (!el) return;
+      const m = view.legendRect;
+      el.hidden = !m;
+      if (!m) return;
+      const left = canvas.offsetLeft + (m.x - cam.x) * cam.zoom + canvas.clientWidth / 2;
+      const top = canvas.offsetTop + (m.y - cam.y) * cam.zoom + canvas.clientHeight / 2;
+      el.style.transform = `translate(${left}px, ${top}px)`;
+      el.style.width = `${m.w * cam.zoom}px`;
+      el.style.height = `${m.h * cam.zoom}px`;
+    };
+
+    const drawOverlay = () => {
       const dpr = canvas.width / Math.max(1, canvas.clientWidth);
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      const originX = cam.x - w / 2 / cam.zoom, originY = cam.y - h / 2 / cam.zoom;
+      const settings = useSettings.getState();
       lctx.setTransform(1, 0, 0, 1, 0, 0);
       lctx.clearRect(0, 0, labelCanvas.width, labelCanvas.height);
-      if (!useSettings.getState().names) return;
-      lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const w = canvas.clientWidth, h = canvas.clientHeight;
-      drawLabels(lctx, labels, countryOf, { scale: cam.zoom, originX: cam.x - w / 2 / cam.zoom, originY: cam.y - h / 2 / cam.zoom, minSize: 9, fadeFrom: 64 });
+      if (settings.names) {
+        lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        drawLabels(lctx, labels, countryOf, { scale: cam.zoom, originX, originY, minSize: 9, fadeFrom: 64 });
+      }
+      view.legendRect = null;
+      const e = settings.legend ? currentEntries() : null;
+      if (e && !isEmpty(e)) {
+        const k = dpr * cam.zoom;
+        lctx.setTransform(k, 0, 0, k, -originX * k, -originY * k);
+        const t = MESSAGES[useLang.getState().lang];
+        const place = legendPlacement(useStore.getState().legend, map.width, map.height);
+        view.legendRect = drawLegend(lctx, e, { title: t.legend.title, more: t.legend.more }, place, legendUnit(map.width), k, {
+          scale: useSettings.getState().legendScale,
+          columnGap: useSettings.getState().legendColumnGap,
+          bounds: { w: map.width, h: map.height },
+        });
+      }
+      placeHandle();
     };
 
     let raf = 0;
@@ -70,7 +116,7 @@ export function MapCanvas({ map }: { map: MapData }) {
         raf = requestAnimationFrame(() => {
           raf = 0;
           r.draw(cam);
-          drawNames();
+          drawOverlay();
         });
     };
     refreshLabels(0);
@@ -91,6 +137,7 @@ export function MapCanvas({ map }: { map: MapData }) {
       request();
     };
     view.fit = fit;
+    view.zoom = () => cam.zoom;
     view.zoomBy = (f) => {
       cam.zoom *= f;
       clamp();
@@ -270,6 +317,7 @@ export function MapCanvas({ map }: { map: MapData }) {
     canvas.addEventListener('pointercancel', onUp, opts);
     canvas.addEventListener('pointerleave', onLeave, opts);
     canvas.addEventListener('wheel', onWheel, { passive: false, signal: ac.signal });
+    view.wheel = onWheel;
     canvas.addEventListener('contextmenu', noMenu, opts);
     window.addEventListener('keydown', onKey, opts);
     window.addEventListener('keyup', onKey, opts);
@@ -281,6 +329,8 @@ export function MapCanvas({ map }: { map: MapData }) {
       unsubLang();
       clearTimeout(labelTimer);
       view.labels = null;
+      view.legendRect = null;
+      view.wheel = () => {};
       cancelAnimationFrame(raf);
       ac.abort();
       r.dispose();

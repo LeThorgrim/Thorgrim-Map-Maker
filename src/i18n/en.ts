@@ -63,6 +63,8 @@ export const en = {
     owned: 'Locations owned',
     showName: 'Write the name on the map',
     namesOff: 'names are turned off in the display menu',
+    showInLegend: 'Show in the legend',
+    legendOff: 'the legend is turned off in the display menu',
     remove: (name: string) => `Delete ${name}`,
     undo: 'Undo (Ctrl+Z)',
     redo: 'Redo (Ctrl+Y)',
@@ -83,6 +85,7 @@ export const en = {
 
   legend: {
     title: 'Legend',
+    handle: 'Drag to move · edges to resize · double-click to put back',
     more: (n: number) => `and ${n} more ${n === 1 ? 'country' : 'countries'}`,
   },
 
@@ -92,6 +95,9 @@ export const en = {
     legend: 'Legend',
     overlays: 'Overlays',
     locationBorders: 'Location borders',
+    legendSection: 'Legend layout',
+    legendScale: 'Text size',
+    legendColumnGap: 'Column spacing',
     exportNote: 'The PNG export shows the map as displayed here.',
   },
 

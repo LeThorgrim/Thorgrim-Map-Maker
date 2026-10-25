@@ -33,6 +33,8 @@ export interface Country {
   label?: Localized;
   /** The name is not written on the map (the country stays in the legend). */
   hideName?: boolean;
+  /** The country is left out of the legend. */
+  hideLegend?: boolean;
 }
 
 export interface Overlay {
@@ -41,6 +43,19 @@ export interface Overlay {
   name: string;
   color: string;
   style: OverlayStyle;
+  /** The overlay is left out of the legend. */
+  hideLegend?: boolean;
+}
+
+/**
+ * Where the legend sits on the map, in map pixels. `h` is null while the legend takes the height
+ * of its content; it is set once the user resizes it.
+ */
+export interface LegendBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number | null;
 }
 
 /** Name of a country in a language (loadout countries follow the interface language). */
@@ -89,6 +104,8 @@ export interface SavedState {
   hatch?: number[];
   /** Single overlay channel of early saves, split by style when restored. */
   marks?: number[];
+  /** Position and size of the legend (absent: the default place, bottom left). */
+  legend?: LegendBox | null;
 }
 
 /** Locations where restyling an overlay would replace another overlay of the target style. */
@@ -128,6 +145,8 @@ interface State {
   future: Command[];
   /** Incremented on every change of `owner`, `outline` or `hatch` (mutated in place). */
   revision: number;
+  /** Position and size of the legend on the map; null = default place. */
+  legend: LegendBox | null;
 
   setMap(map: MapData): void;
   setTool(tool: Tool): void;
@@ -148,6 +167,11 @@ interface State {
   recolorCountry(id: number, color: string): void;
   /** Shows or hides the country's name on the map. */
   toggleCountryName(id: number): void;
+  /** Shows or hides the country in the legend. */
+  toggleCountryLegend(id: number): void;
+  /** Shows or hides the overlay in the legend. */
+  toggleOverlayLegend(id: number): void;
+  setLegend(box: LegendBox | null): void;
   deleteCountry(id: number): void;
 
   addOverlay(name: string): void;
@@ -259,6 +283,7 @@ export const useStore = create<State>()((set, get) => {
     past: [],
     future: [],
     revision: 0,
+    legend: null,
 
     // Every map starts blank; persist.ts then restores the saved version of that map.
     setMap: (map) =>
@@ -279,6 +304,7 @@ export const useStore = create<State>()((set, get) => {
         past: [],
         future: [],
         revision: get().revision + 1,
+        legend: null,
       }),
     setTool: (tool) => set({ tool }),
     setLevel: (level) => set({ level }),
@@ -353,9 +379,27 @@ export const useStore = create<State>()((set, get) => {
     renameCountry: (id, name) =>
       set({
         countries: get().countries.map((c) =>
-          c.id === id ? { id: c.id, color: c.color, name, ...(c.hideName ? { hideName: true } : {}) } : c,
+          // the loadout label goes (the name is now the user's), the display flags stay
+          c.id === id ? { ...c, name, label: undefined } : c,
         ),
       }),
+    toggleCountryLegend: (id) =>
+      set({
+        countries: get().countries.map((c) => {
+          if (c.id !== id) return c;
+          const { hideLegend, ...rest } = c;
+          return hideLegend ? rest : { ...rest, hideLegend: true };
+        }),
+      }),
+    toggleOverlayLegend: (id) =>
+      set({
+        overlays: get().overlays.map((o) => {
+          if (o.id !== id) return o;
+          const { hideLegend, ...rest } = o;
+          return hideLegend ? rest : { ...rest, hideLegend: true };
+        }),
+      }),
+    setLegend: (legend) => set({ legend }),
     toggleCountryName: (id) =>
       set({
         countries: get().countries.map((c) => {
@@ -538,6 +582,7 @@ export const useStore = create<State>()((set, get) => {
         activeOverlayId: s.activeOverlayId,
         outline: encodeRuns(s.outline, n),
         hatch: encodeRuns(s.hatch, n),
+        legend: s.legend,
       };
     },
 
@@ -566,6 +611,7 @@ export const useStore = create<State>()((set, get) => {
         overlays,
         nextOverlayId: saved.nextOverlayId ?? overlays.reduce((m, o) => Math.max(m, o.id + 1), 1),
         activeOverlayId: saved.activeOverlayId ?? null,
+        legend: saved.legend ?? null,
         layer: 'country',
         past: [],
         future: [],

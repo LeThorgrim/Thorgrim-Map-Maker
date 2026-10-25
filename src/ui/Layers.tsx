@@ -3,7 +3,7 @@ import { useLang, useT } from '../i18n';
 import { countryName, useStore, type OverlayStyle } from '../state/store';
 import { useSettings } from '../state/settings';
 import { confirmDialog } from './confirm';
-import { ChevronIcon, CloseIcon, HatchIcon, NameIcon, OutlineIcon, PlusIcon } from './icons';
+import { ChevronIcon, CloseIcon, HatchIcon, LegendIcon, NameIcon, OutlineIcon, PlusIcon } from './icons';
 
 const OPEN_KEY = 'mapmaker:open-sections';
 
@@ -58,6 +58,28 @@ function useCounts(which: 'country' | 'overlay') {
   }, [revision, which]);
 }
 
+/**
+ * On/off switch of one row (name on the map, entry in the legend). Dimmed while the whole layer
+ * is turned off in the display menu: the choice is kept but has no effect.
+ */
+function ShowButton(props: { on: boolean; muted: boolean; label: string; mutedNote: string; onToggle: () => void; children: ReactNode }) {
+  return (
+    <button
+      role="switch"
+      aria-checked={props.on}
+      className={[props.on ? 'on' : '', props.muted ? 'muted' : ''].join(' ').trim()}
+      title={props.muted ? `${props.label} — ${props.mutedNote}` : props.label}
+      aria-label={props.label}
+      onClick={(e) => {
+        e.stopPropagation();
+        props.onToggle();
+      }}
+    >
+      {props.children}
+    </button>
+  );
+}
+
 export function CountrySection() {
   const t = useT();
   const lang = useLang((s) => s.lang);
@@ -66,6 +88,7 @@ export function CountrySection() {
   const layer = useStore((s) => s.layer);
   const counts = useCounts('country');
   const namesOn = useSettings((st) => st.names);
+  const legendOn = useSettings((st) => st.legend);
   const s = useStore.getState();
 
   return (
@@ -95,20 +118,25 @@ export function CountrySection() {
                   onChange={(e) => s.renameCountry(c.id, e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
                 />
-                <span className={namesOn ? 'style-switch name-switch' : 'style-switch name-switch muted'}>
-                  <button
-                    role="switch"
-                    aria-checked={!c.hideName}
-                    className={c.hideName ? '' : 'on'}
-                    title={namesOn ? t.panel.showName : `${t.panel.showName} — ${t.panel.namesOff}`}
-                    aria-label={t.panel.showName}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      s.toggleCountryName(c.id);
-                    }}
+                <span className="style-switch show-switch">
+                  <ShowButton
+                    on={!c.hideName}
+                    muted={!namesOn}
+                    label={t.panel.showName}
+                    mutedNote={t.panel.namesOff}
+                    onToggle={() => s.toggleCountryName(c.id)}
                   >
                     <NameIcon />
-                  </button>
+                  </ShowButton>
+                  <ShowButton
+                    on={!c.hideLegend}
+                    muted={!legendOn}
+                    label={t.panel.showInLegend}
+                    mutedNote={t.panel.legendOff}
+                    onToggle={() => s.toggleCountryLegend(c.id)}
+                  >
+                    <LegendIcon />
+                  </ShowButton>
                 </span>
                 <span className="n" title={t.panel.owned}>
                   {counts.get(c.id) ?? 0}
@@ -147,6 +175,7 @@ export function OverlaySection() {
   const activeId = useStore((s) => s.activeOverlayId);
   const layer = useStore((s) => s.layer);
   const counts = useCounts('overlay');
+  const legendOn = useSettings((st) => st.legend);
   const s = useStore.getState();
 
   // Each style is a channel: moving an overlay to the other style replaces the overlay of that
@@ -212,6 +241,17 @@ export function OverlaySection() {
                       <st.icon />
                     </button>
                   ))}
+                </span>
+                <span className="style-switch show-switch">
+                  <ShowButton
+                    on={!o.hideLegend}
+                    muted={!legendOn}
+                    label={t.panel.showInLegend}
+                    mutedNote={t.panel.legendOff}
+                    onToggle={() => s.toggleOverlayLegend(o.id)}
+                  >
+                    <LegendIcon />
+                  </ShowButton>
                 </span>
                 <span className="n" title={t.panel.marked}>
                   {counts.get(o.id) ?? 0}

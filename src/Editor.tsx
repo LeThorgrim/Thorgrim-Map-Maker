@@ -9,7 +9,7 @@ import { useStore } from './state/store';
 import { HoverCard } from './ui/HoverCard';
 import { FitIcon, MinusIcon, PlusIcon } from './ui/icons';
 import { DisplayMenu } from './ui/DisplayMenu';
-import { Legend } from './ui/Legend';
+import { LegendHandle } from './ui/LegendHandle';
 import { Sidebar } from './ui/Sidebar';
 
 /** The map editor. `start` is the id of a loadout to load right away (from the home screen). */
@@ -106,6 +106,7 @@ export function Editor({ mapId, start }: { mapId: string; start?: string }) {
   return (
     <main className="app" style={{ '--accent': accent } as React.CSSProperties}>
       <MapCanvas map={map} />
+      <LegendHandle />
       <Sidebar map={map} loadouts={loadouts} />
       <div className="zoom">
         <button className="btn" onClick={() => view.zoomBy(1.4)} title={t.editor.zoomIn} aria-label={t.editor.zoomIn}>
@@ -119,7 +120,6 @@ export function Editor({ mapId, start }: { mapId: string; start?: string }) {
         </button>
         <DisplayMenu />
       </div>
-      <Legend />
       <HoverCard map={map} />
       <p className="attribution">{map.attribution}</p>
     </main>

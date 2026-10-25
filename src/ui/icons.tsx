@@ -81,6 +81,13 @@ export const NameIcon = () => (
     <path d="M5 20 12 4l7 16M8 14h8" />
   </svg>
 );
+/** A list with bullets: the entry shown in the legend. */
+export const LegendIcon = () => (
+  <svg {...base} width={14} height={14} strokeWidth={2} aria-hidden>
+    <path d="M9 7h11M9 12h11M9 17h11" />
+    <path d="M4.5 7h.01M4.5 12h.01M4.5 17h.01" strokeWidth={3} />
+  </svg>
+);
 export const EyeIcon = () => (
   <svg {...base} aria-hidden>
     <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
