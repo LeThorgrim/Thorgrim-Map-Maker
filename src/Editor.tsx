@@ -10,6 +10,7 @@ import { HoverCard } from './ui/HoverCard';
 import { FitIcon, MinusIcon, PlusIcon } from './ui/icons';
 import { DisplayMenu } from './ui/DisplayMenu';
 import { LegendHandle } from './ui/LegendHandle';
+import { Logo } from './ui/Logo';
 import { Sidebar } from './ui/Sidebar';
 
 /** The map editor. `start` is the id of a loadout to load right away (from the home screen). */
@@ -99,7 +100,11 @@ export function Editor({ mapId, start }: { mapId: string; start?: string }) {
   if (!map)
     return (
       <div className="splash">
-        <p>{t.editor.loading}</p>
+        <p>
+          <Logo className="splash-logo" size={96} />
+          <br />
+          {t.editor.loading}
+        </p>
       </div>
     );
 

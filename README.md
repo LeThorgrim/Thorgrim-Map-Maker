@@ -153,6 +153,13 @@ octaves fade out when zoomed out, to avoid speckle), a slate-teal sea with engra
 sepia coasts and an inner shading along country borders. The home thumbnail is rendered from the
 1444 loadout in the same colours. Design tokens are at the top of `src/index.css`.
 
+The logo (`public/logo.svg`) is a compass rose in walnut and gold with "TMM" in Cinzel, the letters
+converted to paths so it needs no font. Small sizes use pixel-art versions drawn on the
+pixel grid, sharper than the SVG scaled down: `logo-16/24/32.png` (with "TMM" in a bitmap font and a
+dark outline) for the logo of the side panel, and `favicon-16.png` / `favicon-32.png`, the compass
+rose alone on a parchment tile. `apple-touch-icon.png` is the detailed logo on a walnut background, for phones. The SVG heads
+the home screen and swings like a compass needle while a map loads.
+
 ## Architecture
 
 ```

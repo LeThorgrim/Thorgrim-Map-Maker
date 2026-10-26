@@ -12,6 +12,7 @@ import { BackIcon, BrushIcon, CloseIcon, EraserIcon, PipetteIcon, RedoIcon, Undo
 import { CountrySection, OverlaySection } from './Layers';
 import { confirmDialog } from './confirm';
 import { LanguageSwitch } from './LanguageSwitch';
+import { Logo } from './Logo';
 
 const TOOLS: { id: Tool; key: string; icon: () => React.JSX.Element }[] = [
   { id: 'paint', key: 'B', icon: BrushIcon },
@@ -91,8 +92,10 @@ export function Sidebar({ map, loadouts }: { map: MapData; loadouts: LoadoutInfo
     <aside className="panel frame">
       <header className="panel-head">
         <div className="panel-top">
-          <a className="back" href="#/">
-            <BackIcon /> {t.editor.backToList}
+          <a className="back" href="#/" title={t.appName}>
+            <BackIcon />
+            <Logo size={24} />
+            {t.editor.backToList}
           </a>
           <LanguageSwitch />
         </div>

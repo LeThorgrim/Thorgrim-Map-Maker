@@ -255,6 +255,18 @@ button {
 .back:hover {
   color: var(--gold-hi);
 }
+/* pixel art is enlarged without smoothing on high-density screens */
+.logo.pixel {
+  image-rendering: pixelated;
+}
+.back .logo {
+  margin: -4px 5px -4px 0;
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 0.6));
+  transition: transform 0.4s;
+}
+.back:hover .logo {
+  transform: rotate(-12deg);
+}
 
 .group {
   padding: 11px 18px 9px;
@@ -775,6 +787,25 @@ kbd {
 }
 .splash a {
   color: var(--gold-hi);
+}
+/* while a map loads, the compass rose swings like a needle settling */
+.splash-logo {
+  margin-bottom: 10px;
+  filter: drop-shadow(0 4px 10px rgb(0 0 0 / 0.6));
+  animation: compass 2.4s ease-in-out infinite alternate;
+}
+@keyframes compass {
+  from {
+    transform: rotate(-10deg);
+  }
+  to {
+    transform: rotate(10deg);
+  }
+}
+.home-logo {
+  display: block;
+  margin: 0 auto 10px;
+  filter: drop-shadow(0 6px 14px rgb(0 0 0 / 0.55));
 }
 
 /* ------------------------------------------------------------ home */
@@ -1312,6 +1343,11 @@ kbd {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .splash-logo,
+  .back .logo {
+    animation: none;
+    transition: none;
+  }
   .dialog-backdrop,
   .dialog {
     animation: none;

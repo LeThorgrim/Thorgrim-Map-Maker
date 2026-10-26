@@ -3,6 +3,7 @@ import { numberFormat, pick, useLang, useT } from './i18n';
 import { loadIndex, thumbnailUrl, type MapInfo } from './map/loadMap';
 import { savedSummary } from './state/persist';
 import { LanguageSwitch } from './ui/LanguageSwitch';
+import { Logo } from './ui/Logo';
 
 export function Home() {
   const t = useT();
@@ -22,6 +23,7 @@ export function Home() {
     <div className="home">
       <header className="home-head">
         <LanguageSwitch className="large" />
+        <Logo className="home-logo" size={128} />
         <h1>{t.appName}</h1>
         <div className="ornament" aria-hidden>
           <span />
