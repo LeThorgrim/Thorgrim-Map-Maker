@@ -75,7 +75,8 @@ height of its content (14 countries per column at most) until it is resized vert
 that fit and sums up the countries left out. A wide enough legend lays its entries out in several
 columns, filled top to bottom. The display menu sets the size of its text and the spacing between
 its columns (screen and export alike); a legend growing with its content never leaves the map. The list switch next to each country and each overlay
-leaves it out of the legend. Its position is saved with the map. The eye button (top right) shows or hides country names, the legend, overlays and the
+leaves it out of the legend. The "Legend title" field, under the overlays, renames it (empty: "Legend"
+in the interface language); its switch removes the title altogether. Its title, position and size are saved with the map. The eye button (top right) shows or hides country names, the legend, overlays and the
 borders between locations; the PNG export follows the same settings.
 
 Maps start blank. "Start from" replaces the current map with a loadout (undoable with `Ctrl+Z`);
@@ -209,7 +210,7 @@ The Caspian Sea and lakes Ladoga and Onega are added by hand in `generate.mjs` (
 outlines matter: Ladoga must leave the Karelian Isthmus as land, or Saint Petersburg ends up cut off
 from the rest of Russia.
 
-## Next steps
+## Next steps (maybe someday)
 
 - Vector SVG export: vectorize `ids.png` in the generator (outlines merged per country).
-- Share links (state compressed in the URL), then a Spring Boot API for short links.
+- Share links (state compressed in the URL), then a Spring Boot API for short links. -> would need a backend

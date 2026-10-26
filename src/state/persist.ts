@@ -25,7 +25,9 @@ export function startAutosave(mapId: string) {
       s.activeId === prev.activeId &&
       s.overlays === prev.overlays &&
       s.activeOverlayId === prev.activeOverlayId &&
-      s.legend === prev.legend
+      s.legend === prev.legend &&
+      s.legendTitle === prev.legendTitle &&
+      s.legendShowTitle === prev.legendShowTitle
     )
       return;
     clearTimeout(timer);

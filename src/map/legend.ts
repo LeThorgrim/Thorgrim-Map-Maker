@@ -40,6 +40,10 @@ export function legendEntries(
   };
 }
 
+/** Title written on the legend: the user's, or the default one; null when hidden. */
+export const legendTitleOf = (s: { legendTitle: string; legendShowTitle: boolean }, fallback: string) =>
+  s.legendShowTitle ? s.legendTitle.trim() || fallback : null;
+
 export const isEmpty = (e: LegendEntries) => !e.countries.length && !e.overlays.length;
 
 /** Size of one legend "pixel", in map pixels: the legend is drawn as on a 1600 px wide screen. */
@@ -93,7 +97,8 @@ function fit(ctx: CanvasRenderingContext2D, text: string, width: number) {
 export function drawLegend(
   ctx: CanvasRenderingContext2D,
   e: LegendEntries,
-  text: { title: string; more: (n: number) => string },
+  /** `title` null: no title, the entries start at the top. */
+  text: { title: string | null; more: (n: number) => string },
   place: Placement,
   unit: number,
   deviceScale: number,
@@ -101,7 +106,7 @@ export function drawLegend(
 ) {
   // the text size scales every row; the column spacing is set on its own
   const u = unit * layout.scale;
-  const pad = 14 * u, rowH = 22 * u, titleH = 30 * u, gapH = 10 * u, colGap = layout.columnGap * unit, swatchW = 28 * u;
+  const pad = 14 * u, rowH = 22 * u, titleH = text.title == null ? 0 : 30 * u, gapH = 10 * u, colGap = layout.columnGap * unit, swatchW = 28 * u;
   ctx.save();
 
   // width: as wide as one column of content, unless set by the user
@@ -168,12 +173,14 @@ export function drawLegend(
   ctx.clip();
 
   // title
-  ctx.fillStyle = '#2a1d12';
-  ctx.font = `700 ${16 * u}px ${LABEL_FONT}`;
   ctx.textBaseline = 'middle';
-  ctx.fillText(fit(ctx, text.title.toUpperCase(), inner), x + pad, y + pad + 10 * u);
-  ctx.fillStyle = '#c4ae7f';
-  ctx.fillRect(x + pad, y + pad + titleH - 8 * u, inner, u);
+  if (text.title != null) {
+    ctx.fillStyle = '#2a1d12';
+    ctx.font = `700 ${16 * u}px ${LABEL_FONT}`;
+    ctx.fillText(fit(ctx, text.title.toUpperCase(), inner), x + pad, y + pad + 10 * u);
+    ctx.fillStyle = '#c4ae7f';
+    ctx.fillRect(x + pad, y + pad + titleH - 8 * u, inner, u);
+  }
 
   // cell i of a block starting at `top`, laid out column by column
   const top0 = y + pad + titleH + rowH / 2;

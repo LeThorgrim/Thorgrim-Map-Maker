@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { pick, useLang, useT } from '../i18n';
 import type { Level, LoadoutInfo, MapData } from '../map/loadMap';
 import { drawLabels, LABEL_FONT } from '../map/labels';
-import { drawLegend, isEmpty, legendEntries, legendPlacement, legendUnit } from '../map/legend';
+import { drawLegend, isEmpty, legendTitleOf, legendEntries, legendPlacement, legendUnit } from '../map/legend';
 import { view } from '../map/view';
 import { useSettings } from '../state/settings';
 import { download, openFile, saveToFile } from '../state/persist';
@@ -32,6 +32,8 @@ export function Sidebar({ map, loadouts }: { map: MapData; loadouts: LoadoutInfo
   const tool = useStore((s) => s.tool);
   const level = useStore((s) => s.level);
   const canUndo = useStore((s) => s.past.length > 0);
+  const legendTitle = useStore((s) => s.legendTitle);
+  const showTitle = useStore((s) => s.legendShowTitle);
   const canRedo = useStore((s) => s.future.length > 0);
   const s = useStore.getState();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -58,7 +60,7 @@ export function Sidebar({ map, loadouts }: { map: MapData; loadouts: LoadoutInfo
           const k = canvas.width / map.width;
           ctx.setTransform(k, 0, 0, k, 0, 0);
           const place = legendPlacement(st.legend, map.width, map.height);
-          drawLegend(ctx, entries, { title: t.legend.title, more: t.legend.more }, place, legendUnit(map.width), k, {
+          drawLegend(ctx, entries, { title: legendTitleOf(useStore.getState(), t.legend.title), more: t.legend.more }, place, legendUnit(map.width), k, {
           scale: useSettings.getState().legendScale,
           columnGap: useSettings.getState().legendColumnGap,
           bounds: { w: map.width, h: map.height },
@@ -157,6 +159,24 @@ export function Sidebar({ map, loadouts }: { map: MapData; loadouts: LoadoutInfo
       <div className="layers">
         <CountrySection />
         <OverlaySection />
+      </div>
+
+      <div className={showTitle ? 'legend-title-field' : 'legend-title-field off'}>
+        <label className="toggle" title={t.panel.legendShowTitle}>
+          <input type="checkbox" checked={showTitle} onChange={() => s.toggleLegendTitle()} aria-label={t.panel.legendShowTitle} />
+          <span className="toggle-track" aria-hidden />
+        </label>
+        <span title={t.panel.legendTitleHint}>{t.panel.legendTitle}</span>
+        <input
+          value={legendTitle}
+          placeholder={t.legend.title}
+          maxLength={60}
+          disabled={!showTitle}
+          aria-label={t.panel.legendTitle}
+          title={t.panel.legendTitleHint}
+          onChange={(e) => s.setLegendTitle(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+        />
       </div>
 
       <footer className="panel-foot">

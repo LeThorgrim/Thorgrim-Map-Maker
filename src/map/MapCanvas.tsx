@@ -3,7 +3,7 @@ import { MESSAGES, useLang } from '../i18n';
 import { useSettings } from '../state/settings';
 import { countryName, useStore } from '../state/store';
 import { computeLabels, drawLabels, LABEL_FONT, type Label } from './labels';
-import { drawLegend, isEmpty, legendEntries, legendPlacement, legendUnit, type LegendEntries } from './legend';
+import { drawLegend, isEmpty, legendTitleOf, legendEntries, legendPlacement, legendUnit, type LegendEntries } from './legend';
 import { zonesOf, type Level, type MapData } from './loadMap';
 import { MapRenderer, type Camera } from './renderer';
 import { view } from './view';
@@ -101,7 +101,7 @@ export function MapCanvas({ map }: { map: MapData }) {
         lctx.setTransform(k, 0, 0, k, -originX * k, -originY * k);
         const t = MESSAGES[useLang.getState().lang];
         const place = legendPlacement(useStore.getState().legend, map.width, map.height);
-        view.legendRect = drawLegend(lctx, e, { title: t.legend.title, more: t.legend.more }, place, legendUnit(map.width), k, {
+        view.legendRect = drawLegend(lctx, e, { title: legendTitleOf(useStore.getState(), t.legend.title), more: t.legend.more }, place, legendUnit(map.width), k, {
           scale: useSettings.getState().legendScale,
           columnGap: useSettings.getState().legendColumnGap,
           bounds: { w: map.width, h: map.height },

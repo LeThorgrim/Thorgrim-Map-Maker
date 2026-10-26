@@ -106,6 +106,10 @@ export interface SavedState {
   marks?: number[];
   /** Position and size of the legend (absent: the default place, bottom left). */
   legend?: LegendBox | null;
+  /** Title of the legend set by the user (absent: "Legend" in the interface language). */
+  legendTitle?: string;
+  /** The legend has no title (absent: it has one). */
+  legendNoTitle?: boolean;
 }
 
 /** Locations where restyling an overlay would replace another overlay of the target style. */
@@ -147,6 +151,10 @@ interface State {
   revision: number;
   /** Position and size of the legend on the map; null = default place. */
   legend: LegendBox | null;
+  /** Title of the legend; empty = "Legend" in the interface language. */
+  legendTitle: string;
+  /** Whether the legend shows its title. */
+  legendShowTitle: boolean;
 
   setMap(map: MapData): void;
   setTool(tool: Tool): void;
@@ -172,6 +180,8 @@ interface State {
   /** Shows or hides the overlay in the legend. */
   toggleOverlayLegend(id: number): void;
   setLegend(box: LegendBox | null): void;
+  setLegendTitle(title: string): void;
+  toggleLegendTitle(): void;
   deleteCountry(id: number): void;
 
   addOverlay(name: string): void;
@@ -284,6 +294,8 @@ export const useStore = create<State>()((set, get) => {
     future: [],
     revision: 0,
     legend: null,
+    legendTitle: '',
+    legendShowTitle: true,
 
     // Every map starts blank; persist.ts then restores the saved version of that map.
     setMap: (map) =>
@@ -305,6 +317,8 @@ export const useStore = create<State>()((set, get) => {
         future: [],
         revision: get().revision + 1,
         legend: null,
+        legendTitle: '',
+        legendShowTitle: true,
       }),
     setTool: (tool) => set({ tool }),
     setLevel: (level) => set({ level }),
@@ -400,6 +414,8 @@ export const useStore = create<State>()((set, get) => {
         }),
       }),
     setLegend: (legend) => set({ legend }),
+    setLegendTitle: (legendTitle) => set({ legendTitle }),
+    toggleLegendTitle: () => set({ legendShowTitle: !get().legendShowTitle }),
     toggleCountryName: (id) =>
       set({
         countries: get().countries.map((c) => {
@@ -583,6 +599,8 @@ export const useStore = create<State>()((set, get) => {
         outline: encodeRuns(s.outline, n),
         hatch: encodeRuns(s.hatch, n),
         legend: s.legend,
+        ...(s.legendTitle ? { legendTitle: s.legendTitle } : {}),
+        ...(s.legendShowTitle ? {} : { legendNoTitle: true }),
       };
     },
 
@@ -612,6 +630,8 @@ export const useStore = create<State>()((set, get) => {
         nextOverlayId: saved.nextOverlayId ?? overlays.reduce((m, o) => Math.max(m, o.id + 1), 1),
         activeOverlayId: saved.activeOverlayId ?? null,
         legend: saved.legend ?? null,
+        legendTitle: saved.legendTitle ?? '',
+        legendShowTitle: !saved.legendNoTitle,
         layer: 'country',
         past: [],
         future: [],
