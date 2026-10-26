@@ -289,6 +289,24 @@ export function regionLabel(iso, reg) {
 }
 
 /**
+ * Straits narrower than a pixel that must still split the land: drawn as water, one pixel wide,
+ * along these lines (lon, lat). Each bank then gets locations of its own.
+ */
+export const STRAITS = [
+  // Bosphorus, from the Black Sea to the Sea of Marmara
+  [[29.16, 41.27], [29.11, 41.2], [29.075, 41.15], [29.06, 41.1], [29.04, 41.07], [29.01, 41.035], [28.995, 41.0], [28.99, 40.96]],
+];
+
+/**
+ * Locations named after a place rather than after their largest town: the location under the
+ * point takes the name.
+ */
+export const PLACE_NAMES = [
+  // the Asian bank of the Bosphorus, facing Constantinople
+  { at: [29.03, 40.99], name: { en: 'Chalcedon', fr: 'Chalcédoine' } },
+];
+
+/**
  * Archipelagos whose main islands each form their own province (and get at least one location
  * of their own, however small). Each island is given by a point on it; nearby islets without a
  * location (Formentera, Cabrera) join the closest island. The administrative unit is the one

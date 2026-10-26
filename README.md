@@ -209,6 +209,9 @@ recolouring a country recolours all its lands without touching `owner`. The hist
 The Caspian Sea and lakes Ladoga and Onega are added by hand in `generate.mjs` (`LAKES`). Their
 outlines matter: Ladoga must leave the Karelian Isthmus as land, or Saint Petersburg ends up cut off
 from the rest of Russia.
+Straits narrower than a pixel (`STRAITS` in `realdata.mjs`: the Bosphorus) are drawn as a one-pixel
+line of water so that each bank gets its own locations, here Constantinople and Chalcedon.
+`PLACE_NAMES` names a location after a place rather than after its largest town.
 
 ## Next steps (maybe someday)
 

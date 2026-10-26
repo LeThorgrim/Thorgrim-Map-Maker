@@ -21,7 +21,7 @@ import { createRequire } from 'node:module';
 import { createNoise2D } from 'simplex-noise';
 import { encode } from 'fast-png';
 import { FRAME, connectGraph, edt, graphKMeans, labelComponents, makeProjection, mulberry32, polygonsOf, scanRings } from './lib.mjs';
-import { ISLAND_PROVINCES, LANDSCAPE, LANGS, REGIONS, TOWN_CODES, historicRegion, regionLabel, townLabel } from './realdata.mjs';
+import { ISLAND_PROVINCES, LANDSCAPE, PLACE_NAMES, STRAITS, LANGS, REGIONS, TOWN_CODES, historicRegion, regionLabel, townLabel } from './realdata.mjs';
 
 const require = createRequire(import.meta.url);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -113,6 +113,21 @@ const land = new Uint8Array(N);
   const rings = loadCoastline().flat().map(proj);
   scanRings(rings, W, H, (r, a, b) => land.fill(1, r * W + a, r * W + b + 1));
   scanRings(LAKES.map(proj), W, H, (r, a, b) => land.fill(0, r * W + a, r * W + b + 1));
+  // straits: every pixel within 0.75 px of the line becomes water (an 8-connected line, which no
+  // 4-connected piece of land can cross)
+  for (const line of STRAITS) {
+    const pts = proj(line);
+    for (let i = 0; i + 1 < pts.length; i++) {
+      const [ax, ay] = pts[i], [bx, by] = pts[i + 1];
+      const len2 = (bx - ax) ** 2 + (by - ay) ** 2;
+      for (let y = Math.floor(Math.min(ay, by)) - 1; y <= Math.ceil(Math.max(ay, by)) + 1; y++)
+        for (let x = Math.floor(Math.min(ax, bx)) - 1; x <= Math.ceil(Math.max(ax, bx)) + 1; x++) {
+          const t = Math.max(0, Math.min(1, ((x + 0.5 - ax) * (bx - ax) + (y + 0.5 - ay) * (by - ay)) / len2));
+          const d = Math.hypot(x + 0.5 - (ax + t * (bx - ax)), y + 0.5 - (ay + t * (by - ay)));
+          if (d <= 0.75 && x >= 0 && y >= 0 && x < W && y < H) land[y * W + x] = 0;
+        }
+    }
+  }
   const lab = new Int32Array(N);
   // fill small lakes (< 120 px), remove specks of land (≤ 6 px)
   let { sizes } = comps((a, b) => !land[a] && !land[b], lab);
@@ -805,6 +820,11 @@ for (let z = 1; z < NZ; z++) {
       break;
     }
   }
+}
+for (const { at, name } of PLACE_NAMES) {
+  const [x, y] = projection(at).map(Math.round);
+  const z = ids[y * W + x];
+  if (z) locName[z] = name;
 }
 log(`Names assigned (${unnamed} location(s) without a nearby town)`);
 
