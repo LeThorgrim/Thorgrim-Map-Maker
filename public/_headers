@@ -1,0 +1,10 @@
+# Cloudflare Pages: cache rules (https://developers.cloudflare.com/pages/configuration/headers/)
+
+# Vite puts a hash in the names of its scripts and styles: they never change, keep them a year
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Map data keeps the same names when a map is regenerated: browsers check for a newer version on
+# every visit (a cheap 304 when unchanged), so ids.png and zones.json always match
+/maps/*
+  Cache-Control: public, max-age=0, must-revalidate

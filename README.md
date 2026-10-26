@@ -1,9 +1,12 @@
 # Thorgim Map Maker
 
 A map editor in the spirit of Europa Universalis: pick a map, create countries and paint their
-borders location by location — or start from a historical loadout (1444, 1914, today).
+borders location by location. Or start from a historical loadout (1444, 1914, today).
 
 The interface is available in English (default) and French.
+
+A preview is hosted here: [thorgrim-map-maker.thorgrim-marco-pro.workers.dev](https://thorgrim-map-maker.thorgrim-marco-pro.workers.dev).
+
 
 ## Getting started
 
